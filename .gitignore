@@ -1,0 +1,128 @@
+# ==========================================
+# 1. 环境变量与安全凭证
+# ==========================================
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ==========================================
+# 2. 遥感与业务大文件数据
+# ==========================================
+data/raw_images/*
+!data/raw_images/.gitkeep
+
+data/docs/*
+!data/docs/.gitkeep
+
+data/processed/*
+!data/processed/.gitkeep
+
+data/temp/*
+!data/temp/.gitkeep
+
+# 常见 GIS / 遥感数据
+*.tif
+*.tiff
+*.img
+*.h5
+*.hdf
+*.nc
+
+# Shapefile 及其伴随文件
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.sbn
+*.sbx
+*.qix
+
+# 瓦片 / 地理数据库
+*.mbtiles
+*.gpkg
+
+# ==========================================
+# 3. Python
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+.venv/
+venv/
+ENV/
+env/
+
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 测试 / 类型检查 / Lint 缓存
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyright/
+
+# ==========================================
+# 4. Node.js / Vue / Vite
+# ==========================================
+node_modules/
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+frontend/dist/
+frontend/dist-ssr/
+
+.eslintcache
+*.tsbuildinfo
+
+# ==========================================
+# 5. 编辑器
+# ==========================================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ==========================================
+# 6. 操作系统
+# ==========================================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# ==========================================
+# 7. Docker / 日志
+# ==========================================
+*.log
+logs/
+docker-compose.override.yml
