@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useSearch } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import {
   ArrowLeft,
@@ -60,7 +61,12 @@ const nextLocalId = () => {
 }
 
 export function NodeLearning() {
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const { nodeId: requestedNodeId } = useSearch({
+    from: '/_authenticated/node-learning/',
+  })
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
+    requestedNodeId ?? null
+  )
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 1,
@@ -75,8 +81,6 @@ export function NodeLearning() {
   const streamedRef = useRef('')
 
   const { data: overview } = useLearningNodes()
-  const effectiveNodeId = selectedNodeId ?? overview?.currentNodeId ?? null
-  const { data: selectedNode } = useLearningNode(effectiveNodeId)
   const completeNode = useCompleteNode()
   const explainNode = useExplainNode()
 
@@ -89,6 +93,16 @@ export function NodeLearning() {
     }
     return statuses
   }, [overview])
+
+  // 支持从星图等入口携带 nodeId 直达指定节点；未知节点回退到当前学习节点
+  const effectiveNodeId = useMemo(() => {
+    if (overview && selectedNodeId && nodeStatuses[selectedNodeId]) {
+      return selectedNodeId
+    }
+    return overview?.currentNodeId ?? null
+  }, [nodeStatuses, overview, selectedNodeId])
+
+  const { data: selectedNode } = useLearningNode(effectiveNodeId)
 
   const groups = useMemo(() => overview?.groups ?? [], [overview])
 
