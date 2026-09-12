@@ -222,7 +222,8 @@ export const buildStarMapLayout = (
       const slot =
         domainNodes.length > 1 ? start + slotSpan * index : (start + end) / 2
       const jitter = (hashString(node.id) - 0.5) * slotSpan * 0.3
-      const angle = slot + jitter
+      // 抖动后夹回扇区可用范围，保证节点始终落在所属领域扇区内
+      const angle = Math.min(Math.max(slot + jitter, start), end)
       const depth = depths.get(node.id) ?? 0
       const radius = config.innerRadius + depth * config.ringGap
       const height =

@@ -7,12 +7,11 @@ import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { useKnowledgeGraph } from './api'
 import {
   domainOrder,
-  edges,
   getDomainTheme,
   getNodeDetail,
-  knowledgeNodesSeed,
   statusLabel,
   type KnowledgeNode,
   type NodeStatus,
@@ -42,7 +41,10 @@ export function KnowledgeGraph() {
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null)
   const [fallbackNotice, setFallbackNotice] = useState<string | null>(null)
 
-  const nodes = knowledgeNodesSeed
+  const { data, isPending } = useKnowledgeGraph()
+
+  const nodes = useMemo(() => data?.nodes ?? [], [data])
+  const edges = useMemo(() => data?.edges ?? [], [data])
 
   const nodeMap = useMemo(
     () =>
@@ -53,7 +55,10 @@ export function KnowledgeGraph() {
     [nodes]
   )
 
-  const layout = useMemo(() => buildStarMapLayout(nodes, edges), [nodes])
+  const layout = useMemo(
+    () => buildStarMapLayout(nodes, edges),
+    [nodes, edges]
+  )
 
   const selectedNode = selectedNodeId ? (nodeMap[selectedNodeId] ?? null) : null
 
@@ -183,7 +188,11 @@ export function KnowledgeGraph() {
               </div>
             )}
 
-            {view === '3d' ? (
+            {isPending ? (
+              <div className='flex h-full min-h-[280px] items-center justify-center rounded-2xl border border-white/8 bg-slate-950/80 text-sm text-slate-400'>
+                正在加载知识星图…
+              </div>
+            ) : view === '3d' ? (
               <Suspense
                 fallback={
                   <div className='flex h-full flex-col items-center justify-center gap-3 rounded-2xl border border-white/8 bg-slate-950/80 text-sm text-slate-400'>
@@ -212,6 +221,7 @@ export function KnowledgeGraph() {
             ) : (
               <StarMap2D
                 nodes={nodes}
+                edges={edges}
                 selectedNodeId={selectedNodeId}
                 hoveredNodeId={hoveredNodeId}
                 onSelectNode={handleSelectNode}

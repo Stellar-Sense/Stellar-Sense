@@ -1,8 +1,8 @@
+import { useEffect } from 'react'
 import { z } from 'zod'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link } from '@tanstack/react-router'
-import { showSubmittedData } from '@/lib/show-submitted-data'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,14 +15,8 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { useProfile, useUpdateProfile } from '../api'
 
 const profileFormSchema = z.object({
   username: z
@@ -47,19 +41,20 @@ const profileFormSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>
 
-// This can come from your database or API.
-const defaultValues: Partial<ProfileFormValues> = {
-  bio: 'I own a computer.',
-  urls: [
-    { value: 'https://shadcn.com' },
-    { value: 'http://twitter.com/shadcn' },
-  ],
+const emptyValues: Partial<ProfileFormValues> = {
+  username: '',
+  email: '',
+  bio: '',
+  urls: [],
 }
 
 export function ProfileForm() {
+  const { data } = useProfile()
+  const updateProfile = useUpdateProfile()
+
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
-    defaultValues,
+    defaultValues: emptyValues,
     mode: 'onChange',
   })
 
@@ -68,10 +63,28 @@ export function ProfileForm() {
     control: form.control,
   })
 
+  useEffect(() => {
+    if (data) {
+      form.reset({
+        username: data.username,
+        email: data.email,
+        bio: data.bio,
+        urls: data.urls ?? [],
+      })
+    }
+  }, [data, form])
+
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit((data) => showSubmittedData(data))}
+        onSubmit={form.handleSubmit((values) =>
+          updateProfile.mutate(
+            { ...values, urls: values.urls ?? [] },
+            {
+              onSuccess: () => toast.success('个人资料已更新'),
+            }
+          )
+        )}
         className='space-y-8'
       >
         <FormField
@@ -97,21 +110,11 @@ export function ProfileForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Email</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder='Select a verified email to display' />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value='m@example.com'>m@example.com</SelectItem>
-                  <SelectItem value='m@google.com'>m@google.com</SelectItem>
-                  <SelectItem value='m@support.com'>m@support.com</SelectItem>
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <Input disabled {...field} />
+              </FormControl>
               <FormDescription>
-                You can manage verified email addresses in your{' '}
-                <Link to='/'>email settings</Link>.
+                邮箱来自你的账号，当前暂不支持在个人资料中修改。
               </FormDescription>
               <FormMessage />
             </FormItem>

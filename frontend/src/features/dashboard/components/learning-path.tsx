@@ -1,25 +1,18 @@
 import { Check, Circle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { DashboardPathNode } from '../api'
 
-type PathNode = {
-  title: string
-  status: 'completed' | 'current' | 'upcoming'
+type LearningPathProps = {
+  nodes: DashboardPathNode[]
 }
 
-const pathNodes: PathNode[] = [
-  { title: '遥感基础', status: 'completed' },
-  { title: 'Python 数据处理', status: 'completed' },
-  { title: '遥感影像处理', status: 'completed' },
-  { title: '深度学习', status: 'current' },
-  { title: 'Transformer', status: 'upcoming' },
-  { title: '遥感大模型', status: 'upcoming' },
-]
-
-export function LearningPath() {
+export function LearningPath({ nodes }: LearningPathProps) {
+  const currentNode = nodes.find((node) => node.status === 'current')
+  const nextNode = nodes.find((node) => node.status === 'upcoming')
   return (
     <div className='flex h-full flex-col justify-center rounded-2xl border border-white/8 bg-slate-900/40 p-3'>
       <div className='flex flex-col gap-3 xl:flex-row xl:items-center'>
-        {pathNodes.map((node, index) => (
+        {nodes.map((node, index) => (
           <div key={node.title} className='flex flex-1 items-center'>
             <div className='flex w-full flex-col items-center text-center'>
               {index > 0 && (
@@ -65,10 +58,10 @@ export function LearningPath() {
 
       <div className='mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-300'>
         <span className='rounded-full border border-sky-400/20 bg-sky-500/10 px-2.5 py-1'>
-          当前节点：深度学习
+          当前节点：{currentNode?.title ?? '—'}
         </span>
         <span className='rounded-full border border-violet-400/20 bg-violet-500/10 px-2.5 py-1'>
-          下一节点：Transformer
+          下一节点：{nextNode?.title ?? '—'}
         </span>
       </div>
     </div>

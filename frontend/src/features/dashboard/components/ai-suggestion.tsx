@@ -6,8 +6,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import type { DashboardSuggestion } from '../api'
 
-export function AiSuggestion() {
+type AiSuggestionProps = {
+  suggestion: DashboardSuggestion
+}
+
+export function AiSuggestion({ suggestion }: AiSuggestionProps) {
   return (
     <Card className='relative flex min-h-0 flex-col overflow-hidden border border-cyan-400/20 bg-gradient-to-br from-sky-500/8 via-slate-950/80 to-violet-500/10 shadow-[0_12px_30px_rgba(14,165,233,0.09)] backdrop-blur-sm'>
       <div className='pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(168,85,247,0.08),transparent_28%)]' />
@@ -29,9 +34,7 @@ export function AiSuggestion() {
           </div>
           <p className='text-sm leading-7 text-slate-200'>
             根据你的近期学习记录，推荐你继续学习：
-            <span className='font-semibold text-white'>
-              Transformer 在遥感影像中的应用
-            </span>
+            <span className='font-semibold text-white'>{suggestion.topic}</span>
           </p>
         </div>
 
@@ -41,7 +44,7 @@ export function AiSuggestion() {
           </p>
           <div className='flex items-center gap-2 text-sm text-violet-100'>
             <Clock3 className='h-4 w-4 text-violet-200' />
-            <span>45 分钟</span>
+            <span>{suggestion.estimate}</span>
           </div>
         </div>
 

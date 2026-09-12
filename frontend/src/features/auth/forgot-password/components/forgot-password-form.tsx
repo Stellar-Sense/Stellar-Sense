@@ -1,11 +1,11 @@
-import { useState } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { sleep, cn } from '@/lib/utils'
+import { useForgotPassword } from '@/features/auth/api'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -28,7 +28,8 @@ export function ForgotPasswordForm({
   ...props
 }: React.HTMLAttributes<HTMLFormElement>) {
   const navigate = useNavigate()
-  const [isLoading, setIsLoading] = useState(false)
+  const forgotPassword = useForgotPassword()
+  const isLoading = forgotPassword.isPending
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -36,17 +37,16 @@ export function ForgotPasswordForm({
   })
 
   function onSubmit(data: z.infer<typeof formSchema>) {
-    setIsLoading(true)
-
-    toast.promise(sleep(2000), {
-      loading: 'Sending email...',
-      success: () => {
-        setIsLoading(false)
+    forgotPassword.mutate(data.email, {
+      onSuccess: (result) => {
         form.reset()
-        navigate({ to: '/otp' })
-        return `Email sent to ${data.email}`
+        if (result.devCode) {
+          toast.success(`验证码（开发模式）：${result.devCode}`)
+        } else {
+          toast.success(`重置验证码已发送至 ${data.email}`)
+        }
+        navigate({ to: '/otp', search: { email: data.email } })
       },
-      error: 'Error',
     })
   }
 

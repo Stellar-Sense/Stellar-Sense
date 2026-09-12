@@ -1,6 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, type RenderResult } from 'vitest-browser-react'
 import { type Locator, userEvent } from 'vitest/browser'
+import { renderWithQueryClient } from '@/test-utils/query-client'
 import { SignUpForm } from './sign-up-form'
 
 const FORM_MESSAGES = {
@@ -10,13 +11,43 @@ const FORM_MESSAGES = {
   passwordMismatch: "Passwords don't match.",
 } as const
 
-const toastPromise = vi.hoisted(() =>
-  vi.fn((p: Promise<unknown>, opts: { success?: () => unknown }) => {
-    p.then(() => opts.success?.())
-  })
-)
+const navigate = vi.fn()
 
-vi.mock('sonner', () => ({ toast: { promise: toastPromise } }))
+const mocks = vi.hoisted(() => {
+  let resolveRegister: ((value: unknown) => void) | undefined
+  const post = vi.fn(
+    () =>
+      new Promise((resolve) => {
+        resolveRegister = resolve
+      })
+  )
+  return {
+    post,
+    resolveRegister: (value: unknown) => resolveRegister?.(value),
+  }
+})
+
+vi.mock('@/lib/api-client', () => ({ apiClient: { post: mocks.post } }))
+vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
+vi.mock('@/stores/auth-store', () => {
+  const state = {
+    auth: {
+      user: null,
+      setUser: vi.fn(),
+      accessToken: '',
+      setAccessToken: vi.fn(),
+      resetAccessToken: vi.fn(),
+      reset: vi.fn(),
+    },
+  }
+  const useAuthStore = (selector?: (value: typeof state) => unknown) =>
+    selector ? selector(state) : state
+  return { useAuthStore }
+})
+vi.mock('@tanstack/react-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@tanstack/react-router')>()
+  return { ...actual, useNavigate: () => navigate }
+})
 
 describe('SignUpForm', () => {
   let screen: RenderResult
@@ -28,15 +59,11 @@ describe('SignUpForm', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
 
-    screen = await render(<SignUpForm />)
+    screen = await render(renderWithQueryClient(<SignUpForm />))
     emailInput = screen.getByRole('textbox', { name: /^Email$/i })
     passwordInput = screen.getByLabelText(/^Password$/i)
     confirmPasswordInput = screen.getByLabelText(/^Confirm Password$/i)
     submitButton = screen.getByRole('button', { name: /^Create Account$/i })
-  })
-
-  afterEach(() => {
-    vi.useRealTimers()
   })
 
   it('renders fields and submit button', async () => {
@@ -71,9 +98,7 @@ describe('SignUpForm', () => {
       .toBeInTheDocument()
   })
 
-  it('disables submit while submitting and re-enables after timeout', async () => {
-    vi.useFakeTimers()
-
+  it('disables submit while submitting and re-enables after success', async () => {
     await userEvent.fill(emailInput, 'a@b.com')
     await userEvent.fill(passwordInput, '1234567')
     await userEvent.fill(confirmPasswordInput, '1234567')
@@ -81,8 +106,19 @@ describe('SignUpForm', () => {
     await userEvent.click(submitButton)
     await expect.element(submitButton).toBeDisabled()
 
-    await vi.advanceTimersByTimeAsync(2000)
+    mocks.resolveRegister({
+      data: {
+        accountNo: 'ACC0002',
+        email: 'a@b.com',
+        role: ['user'],
+        exp: 1893456000000,
+        accessToken: 'mock-access-token',
+      },
+    })
+
     await expect.element(submitButton).toBeEnabled()
-    expect(toastPromise).toHaveBeenCalledOnce()
+    await vi.waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith({ to: '/', replace: true })
+    )
   })
 })

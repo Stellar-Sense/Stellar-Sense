@@ -1,6 +1,7 @@
 import { Outlet } from '@tanstack/react-router'
 import { getCookie } from '@/lib/cookies'
 import { cn } from '@/lib/utils'
+import { useAuthHydration } from '@/features/auth/api'
 import { LayoutProvider } from '@/context/layout-provider'
 import { SearchProvider } from '@/context/search-provider'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
@@ -12,6 +13,8 @@ type AuthenticatedLayoutProps = {
 }
 
 export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
+  // 刷新后依据 cookie 中的 token 恢复当前用户（401 会被全局拦截并跳转登录页）
+  useAuthHydration()
   const defaultOpen = getCookie('sidebar_state') !== 'false'
   return (
     <SearchProvider>
