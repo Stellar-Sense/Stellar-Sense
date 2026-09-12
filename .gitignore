@@ -58,18 +58,19 @@ venv/
 ENV/
 env/
 
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
+# 注意：以下规则限定为仓库根目录（/ 前缀），避免误伤 frontend/src/lib 等源码目录
+/build/
+/develop-eggs/
+/dist/
+/downloads/
+/eggs/
+/.eggs/
+/lib/
+/lib64/
+/parts/
+/sdist/
+/var/
+/wheels/
 *.egg-info/
 .installed.cfg
 *.egg
