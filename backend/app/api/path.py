@@ -20,7 +20,8 @@ REGENERATE_PROMPT = (
     "你是遥感专业的自适应学习路径规划助手。请根据学生的当前学习数据，"
     "生成一段简短的学习路径分析。\n"
     "只输出 JSON（不要代码块、不要多余文字），字段如下：\n"
-    '{"title": "...", "subtitle": "...", "badge": "...", "momentum": "...", "nextAction": "..."}\n'
+    # JSON 示例中的花括号需转义，否则 str.format 会把它们当成占位符（KeyError）
+    '{{"title": "...", "subtitle": "...", "badge": "...", "momentum": "...", "nextAction": "..."}}\n'
     "- title：分析标题（8 字以内）\n"
     "- subtitle：结合进度的具体建议（60 字以内）\n"
     "- badge：2-4 字标签，例如“专属推荐”\n"

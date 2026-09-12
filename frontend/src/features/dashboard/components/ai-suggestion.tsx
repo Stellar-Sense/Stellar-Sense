@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router'
 import { Bot, Clock3, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,6 +14,8 @@ type AiSuggestionProps = {
 }
 
 export function AiSuggestion({ suggestion }: AiSuggestionProps) {
+  const navigate = useNavigate()
+
   return (
     <Card className='relative flex min-h-0 flex-col overflow-hidden border border-cyan-400/20 bg-gradient-to-br from-sky-500/8 via-slate-950/80 to-violet-500/10 shadow-[0_12px_30px_rgba(14,165,233,0.09)] backdrop-blur-sm'>
       <div className='pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(168,85,247,0.08),transparent_28%)]' />
@@ -48,7 +51,10 @@ export function AiSuggestion({ suggestion }: AiSuggestionProps) {
           </div>
         </div>
 
-        <Button className='w-full rounded-xl bg-gradient-to-r from-sky-500 to-violet-500 text-white shadow-lg shadow-sky-500/20 transition-all hover:brightness-110'>
+        <Button
+          className='w-full rounded-xl bg-gradient-to-r from-sky-500 to-violet-500 text-white shadow-lg shadow-sky-500/20 transition-all hover:brightness-110'
+          onClick={() => navigate({ to: '/node-learning' })}
+        >
           <Sparkles className='mr-2 h-4 w-4' />
           开始学习 →
         </Button>

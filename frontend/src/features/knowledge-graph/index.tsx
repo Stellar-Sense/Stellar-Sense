@@ -1,4 +1,5 @@
 import { Suspense, lazy, useCallback, useMemo, useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { Compass, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -36,6 +37,7 @@ const statusClassNames: Record<NodeStatus, string> = {
 }
 
 export function KnowledgeGraph() {
+  const navigate = useNavigate()
   const [view, setView] = useState<ViewMode>('3d')
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null)
@@ -91,6 +93,11 @@ export function KnowledgeGraph() {
   const handleHoverNode = useCallback((nodeId: string | null) => {
     setHoveredNodeId(nodeId)
   }, [])
+
+  const handleStartLearning = useCallback(() => {
+    if (!selectedNode) return
+    navigate({ to: '/node-learning', search: { nodeId: selectedNode.id } })
+  }, [navigate, selectedNode])
 
   return (
     <>
@@ -361,7 +368,10 @@ export function KnowledgeGraph() {
                   </div>
                 </dl>
 
-                <Button className='mt-4 w-full rounded-xl bg-gradient-to-r from-sky-500 to-violet-500 text-white shadow-lg shadow-sky-500/15 hover:brightness-110'>
+                <Button
+                  className='mt-4 w-full rounded-xl bg-gradient-to-r from-sky-500 to-violet-500 text-white shadow-lg shadow-sky-500/15 hover:brightness-110'
+                  onClick={handleStartLearning}
+                >
                   <Sparkles className='mr-2 h-4 w-4' />
                   开始学习 →
                 </Button>
