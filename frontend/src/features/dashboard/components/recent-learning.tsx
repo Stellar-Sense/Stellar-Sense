@@ -7,52 +7,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import type { DashboardRecentItem } from '../api'
 
-type RecentLearningItem = {
-  title: string
-  description: string
-  progress: number
-  status: string
-  iconClass: string
-  fallback: string
+type RecentLearningProps = {
+  items: DashboardRecentItem[]
 }
 
-const recentItems: RecentLearningItem[] = [
-  {
-    title: '遥感影像基础',
-    description: '图像几何基础 · 传感器原理',
-    progress: 82,
-    status: '已完成',
-    iconClass: 'text-sky-200 bg-sky-500/15',
-    fallback: 'RS',
-  },
-  {
-    title: 'Python 遥感数据处理',
-    description: 'Rasterio · GDAL · 数组计算',
-    progress: 74,
-    status: '进行中',
-    iconClass: 'text-cyan-200 bg-cyan-500/15',
-    fallback: 'PY',
-  },
-  {
-    title: 'CNN 遥感影像分类',
-    description: '卷积网络 · 特征提取',
-    progress: 63,
-    status: '进行中',
-    iconClass: 'text-violet-200 bg-violet-500/15',
-    fallback: 'CNN',
-  },
-  {
-    title: '深度学习基础',
-    description: '神经网络 · 优化算法',
-    progress: 91,
-    status: '已完成',
-    iconClass: 'text-emerald-200 bg-emerald-500/15',
-    fallback: 'DL',
-  },
-]
-
-export function RecentLearning() {
+export function RecentLearning({ items }: RecentLearningProps) {
   return (
     <Card className='flex min-h-0 flex-col border border-white/10 bg-slate-950/70 shadow-[0_12px_30px_rgba(15,23,42,0.45)] backdrop-blur-sm'>
       <CardHeader className='shrink-0 pt-3.5 pb-2'>
@@ -64,7 +25,7 @@ export function RecentLearning() {
         </CardDescription>
       </CardHeader>
       <CardContent className='min-h-0 flex-1 space-y-2.5 overflow-y-auto pb-3.5'>
-        {recentItems.map((item) => (
+        {items.map((item) => (
           <div
             key={item.title}
             className='rounded-2xl border border-white/8 bg-slate-900/70 p-2.5'

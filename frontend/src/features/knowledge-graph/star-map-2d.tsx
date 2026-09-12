@@ -2,15 +2,16 @@ import { useMemo, useRef, useState } from 'react'
 import { Check, Minus, Plus, ZoomIn } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
-  edges,
   getNodeDetail,
   getNodeStatusColors,
+  type KnowledgeEdge,
   type KnowledgeNode,
 } from './graph-data'
 import { NodeHoverCard } from './node-hover-card'
 
 type StarMap2DProps = {
   nodes: readonly KnowledgeNode[]
+  edges: readonly KnowledgeEdge[]
   selectedNodeId: string | null
   hoveredNodeId: string | null
   onSelectNode: (nodeId: string | null) => void
@@ -42,6 +43,7 @@ const clamp = (value: number, min: number, max: number) =>
 
 export function StarMap2D({
   nodes,
+  edges,
   selectedNodeId,
   hoveredNodeId,
   onSelectNode,
@@ -95,7 +97,7 @@ export function StarMap2D({
     }
 
     return ids
-  }, [selectedNode])
+  }, [selectedNode, edges])
 
   const stars = useMemo(
     () =>

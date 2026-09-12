@@ -29,150 +29,64 @@ import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { cn } from '@/lib/utils'
 
-type StageStatus = 'done' | 'active' | 'locked'
+import { usePathPlan, useRegeneratePath } from './api'
 
-type PathStage = {
-  id: string
-  title: string
-  summary: string
-  duration: string
-  difficulty: string
-  focus: string
-  objective: string
-  status: StageStatus
-  learningGoal: string
-  recommendedContent: string[]
-  prerequisites: string[]
-  completion: number
-  estimatedTime: string
-  detail: string
-}
+const insightIcons = [Target, Zap, Clock3] as const
 
-const stageSeeds = [
-  {
-    id: 'foundation',
-    title: '遥感基础巩固',
-    summary: '强化电磁波、成像原理与传感器认知',
-    duration: '3 周',
-    difficulty: '基础',
-    focus: '概念复盘 + 实战演练',
-    objective: '建立稳定的遥感底层认知',
-    status: 'done',
-    learningGoal: '掌握遥感的基本观测原理和传感器特性',
-    recommendedContent: ['电磁波基础复盘', '传感器特征梳理', '遥感成像案例实战'],
-    prerequisites: ['无'],
-    completion: 82,
-    estimatedTime: '3 周 / 7 小时',
-    detail:
-      '通过概念复盘与案例练习，建立遥感观测原理的整体认知，为后续数据处理和建模任务做好准备。',
-  },
-  {
-    id: 'python',
-    title: 'Python 数据处理',
-    summary: '形成高效的可视化与数据清洗习惯',
-    duration: '2 周',
-    difficulty: '中等',
-    focus: 'NumPy / Pandas / GDAL',
-    objective: '掌握遥感数据处理主流程',
-    status: 'active',
-    learningGoal: '能够完成影像读取、清洗、可视化和统计分析任务',
-    recommendedContent: ['NumPy 向量化处理', 'Pandas 数据清洗', 'GDAL 影像读取与栅格转换'],
-    prerequisites: ['Python 基础', '遥感概论'],
-    completion: 58,
-    estimatedTime: '2 周 / 6 小时',
-    detail:
-      '当前阶段重点在于把遥感数据从“原始文件”转化成可分析的结构化数据，并建立稳定的处理工作流。',
-  },
-  {
-    id: 'image-processing',
-    title: '影像处理与特征提取',
-    summary: '学习几何校正、辐射校正和图像增强',
-    duration: '3 周',
-    difficulty: '中等',
-    focus: '增强 / 校正 / 提取',
-    objective: '打通从原始影像到分析结果的链路',
-    status: 'locked',
-    learningGoal: '掌握辐射校正、几何校正和特征增强方法',
-    recommendedContent: ['几何校正案例', '辐射校正评估', '纹理与边缘特征提取'],
-    prerequisites: ['Python 数据处理', '遥感成像原理'],
-    completion: 24,
-    estimatedTime: '3 周 / 9 小时',
-    detail:
-      '这一阶段将把原始影像处理成适合后续分析的质量产品，提升对地表特征的识别能力。',
-  },
-  {
-    id: 'dl',
-    title: '深度学习建模',
-    summary: '掌握 CNN、目标检测与语义分割思路',
-    duration: '4 周',
-    difficulty: '进阶',
-    focus: '卷积网络 / 目标检测',
-    objective: '对遥感任务建立模型判读能力',
-    status: 'locked',
-    learningGoal: '形成从数据到模型的完整遥感判读训练流程',
-    recommendedContent: ['CNN 基础网络', '目标检测训练', '语义分割评估'],
-    prerequisites: ['Python 数据处理', '影像处理与特征提取'],
-    completion: 12,
-    estimatedTime: '4 周 / 12 小时',
-    detail:
-      '在掌握影像处理后，继续向深度学习建模推进，建立从特征工程到模型判读的能力闭环。',
-  },
-  {
-    id: 'llm',
-    title: '大模型与智能应用',
-    summary: '接入遥感大模型与跨模态推理能力',
-    duration: '3 周',
-    difficulty: '高级',
-    focus: '微调 / 迁移 / 推理',
-    objective: '形成业务落地与智能分析闭环',
-    status: 'locked',
-    learningGoal: '能够使用大模型完成遥感任务的迁移和推理增强',
-    recommendedContent: ['大模型基础理解', '遥感任务迁移', '跨模态推理应用'],
-    prerequisites: ['深度学习建模', 'Python 数据处理'],
-    completion: 8,
-    estimatedTime: '3 周 / 10 小时',
-    detail:
-      '最终阶段侧重将已有技能延伸到大模型能力上，强化遥感智能应用与业务生成能力。',
-  },
-] satisfies PathStage[]
 
-const analysisVariants = [
-  {
-    title: 'AI 学习路径分析',
-    subtitle: '根据你近期进度，适合继续推进 Python 数据处理模块，保持 2 周冲刺节奏。',
-    badge: '专属推荐',
-    momentum: '+8% 专项提升',
-    nextAction: '下一步：完成 Rasterio + 影像可视化案例',
-  },
-  {
-    title: '当前学习节奏建议',
-    subtitle: '你已完成基础概念复盘，当前最关键的是把数据处理能力转化为实战案例。',
-    badge: '效率优先',
-    momentum: '+12% 产出速度',
-    nextAction: '下一步：用 3 个真实任务强化 GDAL 与 Pandas 应用',
-  },
-] as const
+
+
+
+
 
 export function PathPlanning() {
   const navigate = useNavigate()
-  const [selectedStageId, setSelectedStageId] = useState('python')
-  const [variantIndex, setVariantIndex] = useState(0)
-  const [isRegenerating, setIsRegenerating] = useState(false)
+  const [selectedStageId, setSelectedStageId] = useState<string | null>(null)
+  const { data } = usePathPlan()
+  const regeneratePath = useRegeneratePath()
 
-  const stages = stageSeeds
+  const stages = data?.stages ?? []
   const selectedStage =
-    stages.find((stage) => stage.id === selectedStageId) ?? stages[1]
-
-  const variant = analysisVariants[variantIndex]
+    stages.find((stage) => stage.id === selectedStageId) ??
+    stages.find((stage) => stage.status === 'active') ??
+    stages[0]
 
   const insightCards = useMemo(
-    () => [
-      { label: '当前掌握度', value: '68%', icon: Target },
-      { label: '本周产出', value: '5 项任务', icon: Zap },
-      { label: '预计完成', value: '12 天', icon: Clock3 },
-    ],
-    []
+    () =>
+      (data?.insight.cards ?? []).map((card, index) => ({
+        ...card,
+        icon: insightIcons[index % insightIcons.length],
+      })),
+    [data]
   )
+
+  const variant = data?.analysis
+
+  const overallCompletion = Math.round(
+    stages.reduce((sum, stage) => sum + stage.completion, 0) /
+      Math.max(stages.length, 1)
+  )
+
+  if (!variant || !selectedStage) {
+    return (
+      <>
+        <Header>
+          <Search className='me-auto' />
+          <ThemeSwitch />
+          <ProfileDropdown />
+        </Header>
+
+        <Main
+          fixed
+          className='relative overflow-hidden px-4 py-3 md:px-5 md:py-4'
+        >
+          <div className='flex h-full items-center justify-center text-sm text-slate-400'>
+            正在加载学习路径…
+          </div>
+        </Main>
+      </>
+    )
+  }
 
   const handleContinueLearning = () => {
     navigate({ to: '/node-learning' })
@@ -183,20 +97,18 @@ export function PathPlanning() {
     navigate({ to: '/node-learning' })
   }
 
-  const handleRegenerate = async () => {
-    if (isRegenerating) return
+  const handleRegenerate = () => {
+    if (regeneratePath.isPending) return
 
-    setIsRegenerating(true)
     const loadingId = toast.loading('AI 正在分析你的学习记录……')
-
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    setVariantIndex((index) => (index + 1) % analysisVariants.length)
-    setSelectedStageId('python')
-
-    toast.dismiss(loadingId)
-    toast.success('已根据你的近期学习表现重新生成学习路径')
-    setIsRegenerating(false)
+    regeneratePath.mutate(undefined, {
+      onSuccess: () => {
+        toast.dismiss(loadingId)
+        toast.success('已根据你的近期学习表现重新生成学习路径')
+        setSelectedStageId(null)
+      },
+      onError: () => toast.dismiss(loadingId),
+    })
   }
 
   return (
@@ -241,9 +153,9 @@ export function PathPlanning() {
                   variant='outline'
                   className='h-9 rounded-xl border border-slate-700 bg-slate-900/50 text-slate-100 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-80'
                   onClick={handleRegenerate}
-                  disabled={isRegenerating}
+                  disabled={regeneratePath.isPending}
                 >
-                  {isRegenerating ? (
+                  {regeneratePath.isPending ? (
                     <>
                       <Loader2 className='mr-2 h-4 w-4 animate-spin' />
                       正在分析……
@@ -310,7 +222,7 @@ export function PathPlanning() {
                   </div>
                   <div className='inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-medium text-emerald-200'>
                     <CheckCheck className='h-3.5 w-3.5' />
-                    进度 58%
+                    进度 {overallCompletion}%
                   </div>
                 </div>
               </CardHeader>
@@ -319,7 +231,7 @@ export function PathPlanning() {
                 <div className='space-y-2.5 pr-1'>
                   {stages.map((stage, index) => {
                     const isSelected = stage.id === selectedStage.id
-                    const isCurrent = stage.id === 'python'
+                    const isCurrent = stage.status === 'active'
 
                     return (
                       <button
@@ -415,7 +327,7 @@ export function PathPlanning() {
                     阶段详情
                   </CardTitle>
                   <div className='rounded-full border border-sky-400/20 bg-sky-500/10 px-2 py-1 text-[10px] font-medium text-sky-200'>
-                    {selectedStage.id === 'python' ? '当前学习' : '当前阶段'}
+                    {selectedStage.status === 'active' ? '当前学习' : '阶段详情'}
                   </div>
                 </div>
               </CardHeader>

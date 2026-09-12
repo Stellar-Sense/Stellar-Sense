@@ -1,22 +1,35 @@
 import { describe, expect, it } from 'vitest'
-import {
-  edges,
-  knowledgeNodesSeed,
-  type KnowledgeEdge,
-  type KnowledgeNode,
-} from './graph-data'
+import type { KnowledgeEdge, KnowledgeNode } from './graph-data'
 import { buildStarMapLayout, computeNodeDepths } from './star-map-layout'
 
-const node = (id: string, domain = 'A', prerequisites: string[] = []) => ({
+const node = (
+  id: string,
+  domain = 'A',
+  prerequisites: string[] = []
+): KnowledgeNode => ({
   id,
   name: id,
   domain,
-  status: 'unlearned' as const,
+  status: 'unlearned',
   x: 0,
   y: 0,
   prerequisites,
   duration: '10 分钟',
 })
+
+const fixtureNodes: KnowledgeNode[] = [
+  node('遥感概论'),
+  node('电磁波与遥感', 'A', ['遥感概论']),
+  node('NumPy', 'B'),
+  node('GDAL', 'B', ['NumPy']),
+  node('CNN', 'C', ['GDAL']),
+]
+
+const fixtureEdges: KnowledgeEdge[] = [
+  { from: '遥感概论', to: '电磁波与遥感' },
+  { from: 'NumPy', to: 'GDAL' },
+  { from: 'GDAL', to: 'CNN' },
+]
 
 describe('computeNodeDepths', () => {
   it('places roots at depth 0 and layers descendants by prerequisites', () => {
@@ -62,22 +75,22 @@ describe('computeNodeDepths', () => {
     expect(depths.get('b')).toBe(1)
   })
 
-  it('keeps every edge pointing to a deeper layer on the seed data', () => {
-    const depths = computeNodeDepths(knowledgeNodesSeed, edges)
+  it('keeps every edge pointing to a deeper layer on the fixture data', () => {
+    const depths = computeNodeDepths(fixtureNodes, fixtureEdges)
 
-    for (const edge of edges) {
+    for (const edge of fixtureEdges) {
       expect(depths.get(edge.to)).toBeGreaterThan(depths.get(edge.from) ?? 0)
     }
   })
 })
 
 describe('buildStarMapLayout', () => {
-  const layout = buildStarMapLayout(knowledgeNodesSeed, edges)
+  const layout = buildStarMapLayout(fixtureNodes, fixtureEdges)
 
   it('creates one planet per node with unique ids', () => {
-    expect(layout.planets).toHaveLength(knowledgeNodesSeed.length)
+    expect(layout.planets).toHaveLength(fixtureNodes.length)
     expect(new Set(layout.planets.map((planet) => planet.nodeId)).size).toBe(
-      knowledgeNodesSeed.length
+      fixtureNodes.length
     )
   })
 
@@ -123,7 +136,7 @@ describe('buildStarMapLayout', () => {
   })
 
   it('is deterministic for identical input', () => {
-    expect(buildStarMapLayout(knowledgeNodesSeed, edges)).toEqual(layout)
+    expect(buildStarMapLayout(fixtureNodes, fixtureEdges)).toEqual(layout)
   })
 
   it('falls back to a usable layout when a domain is unknown', () => {

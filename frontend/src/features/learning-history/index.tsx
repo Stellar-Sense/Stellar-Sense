@@ -45,6 +45,8 @@ import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { cn } from '@/lib/utils'
 
+import { useLearningHistory } from './api'
+
 type RangeKey = '7d' | '30d' | '90d'
 
 type LearningRecord = {
@@ -63,117 +65,43 @@ const rangeOptions: Array<{ key: RangeKey; label: string }> = [
   { key: '90d', label: '90 天' },
 ]
 
-const trendDataByRange: Record<RangeKey, Array<{ label: string; minutes: number; mastery: number }>> = {
-  '7d': [
-    { label: '周一', minutes: 32, mastery: 62 },
-    { label: '周二', minutes: 48, mastery: 65 },
-    { label: '周三', minutes: 41, mastery: 68 },
-    { label: '周四', minutes: 56, mastery: 72 },
-    { label: '周五', minutes: 62, mastery: 74 },
-    { label: '周六', minutes: 35, mastery: 76 },
-    { label: '周日', minutes: 49, mastery: 79 },
-  ],
-  '30d': [
-    { label: '第 1 周', minutes: 110, mastery: 58 },
-    { label: '第 2 周', minutes: 135, mastery: 63 },
-    { label: '第 3 周', minutes: 145, mastery: 66 },
-    { label: '第 4 周', minutes: 160, mastery: 72 },
-    { label: '第 5 周', minutes: 182, mastery: 77 },
-  ],
-  '90d': [
-    { label: '1 月', minutes: 240, mastery: 52 },
-    { label: '2 月', minutes: 310, mastery: 61 },
-    { label: '3 月', minutes: 350, mastery: 69 },
-    { label: '4 月', minutes: 395, mastery: 74 },
-    { label: '5 月', minutes: 430, mastery: 81 },
-    { label: '6 月', minutes: 470, mastery: 84 },
-  ],
-}
+const statIcons = [Clock3, Target, Flame, TrendingUp] as const
 
-const masteryData = [
-  { name: '图像增强', value: 82, color: 'bg-cyan-400' },
-  { name: '特征提取', value: 74, color: 'bg-violet-400' },
-  { name: '目标检测', value: 63, color: 'bg-sky-400' },
-  { name: 'Transformer', value: 57, color: 'bg-indigo-400' },
-  { name: '大模型应用', value: 46, color: 'bg-slate-400' },
-]
-
-const recentStudySessions: LearningRecord[] = [
-  {
-    id: 1,
-    title: '图像增强复盘',
-    category: '影像处理',
-    duration: '42 分钟',
-    score: 92,
-    timestamp: '今天 08:30',
-    summary: '回顾了直方图均衡化与 CLAHE 的适用场景，并完成 1 个案例复述。',
-  },
-  {
-    id: 2,
-    title: 'Pandas 数据清洗',
-    category: '数据处理',
-    duration: '31 分钟',
-    score: 88,
-    timestamp: '昨天 19:15',
-    summary: '完成重采样、缺失值处理和多波段表格清洗，形成稳定实践模板。',
-  },
-  {
-    id: 3,
-    title: '遥感目标检测',
-    category: '深度学习',
-    duration: '57 分钟',
-    score: 84,
-    timestamp: '前天 20:10',
-    summary: '复习边界框回归与 IoU 评估，进一步理解检测任务中分辨率的影响。',
-  },
-]
-
-const timelineEntries = [
-  {
-    id: 1,
-    title: '完成“图像增强”单元测试',
-    tag: '已完成',
-    when: '今天 08:30',
-    description: '完成 1 次单元知识检测，准确率达到 92%。',
-  },
-  {
-    id: 2,
-    title: '新增 Python 数据清洗案例',
-    tag: '学习记录',
-    when: '昨天 19:15',
-    description: '在 GDAL + Pandas 流程中添加了 2 个真实影像处理案例。',
-  },
-  {
-    id: 3,
-    title: '学习路径调整：推进 Transformer',
-    tag: '路径优化',
-    when: '3 天前',
-    description: '结合最近掌握度评分，调整下一阶段优先顺序至 Transformer 与目标检测。',
-  },
-  {
-    id: 4,
-    title: '沉淀 3 个关键概念卡片',
-    tag: '知识整理',
-    when: '1 周前',
-    description: '补充了“对比度增强”“边缘特征”“局部上下文”的学习卡片。',
-  },
+const masteryColors = [
+  'bg-cyan-400',
+  'bg-violet-400',
+  'bg-sky-400',
+  'bg-indigo-400',
+  'bg-slate-400',
 ] as const
 
 export function LearningHistory() {
   const [selectedRange, setSelectedRange] = useState<RangeKey>('30d')
-  const [selectedRecord, setSelectedRecord] = useState<LearningRecord | null>(null)
-
-  const trendData = useMemo(() => trendDataByRange[selectedRange], [selectedRange])
-
-  const summaryStats = useMemo(
-    () => [
-      { label: '学习时长', value: '18.6h', detail: '较上周 +22%', icon: Clock3 },
-      { label: '完成率', value: '84%', detail: '整体进度稳定', icon: Target },
-      { label: '连续学习', value: '12 天', detail: '保持高效节奏', icon: Flame },
-      { label: '知识掌握', value: '76%', detail: '较月初 +9%', icon: TrendingUp },
-    ],
-    []
+  const [selectedRecord, setSelectedRecord] = useState<LearningRecord | null>(
+    null
   )
+
+  const { data } = useLearningHistory(selectedRange)
+
+  const trendData = useMemo(() => data?.trend ?? [], [data])
+  const summaryStats = useMemo(
+    () =>
+      (data?.stats ?? []).map((stat, index) => ({
+        ...stat,
+        icon: statIcons[index % statIcons.length],
+      })),
+    [data]
+  )
+  const masteryData = useMemo(
+    () =>
+      (data?.mastery ?? []).map((item, index) => ({
+        ...item,
+        color: masteryColors[index % masteryColors.length],
+      })),
+    [data]
+  )
+  const recentStudySessions = data?.records ?? []
+  const timelineEntries = data?.timeline ?? []
 
   return (
     <>

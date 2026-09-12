@@ -1,17 +1,27 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, type RenderResult } from 'vitest-browser-react'
 import { type Locator, userEvent } from 'vitest/browser'
-import { showSubmittedData } from '@/lib/show-submitted-data'
+import { renderWithQueryClient } from '@/test-utils/query-client'
 import { OtpForm } from './otp-form'
 
 const navigate = vi.fn()
 
 vi.mock('@tanstack/react-router', async (orig) => {
   const actual = await orig<typeof import('@tanstack/react-router')>()
-  return { ...actual, useNavigate: () => navigate }
+  return {
+    ...actual,
+    useNavigate: () => navigate,
+    useSearch: () => ({ email: 'a@b.com' }),
+  }
 })
 
-vi.mock('@/lib/show-submitted-data', () => ({ showSubmittedData: vi.fn() }))
+vi.mock('@/lib/api-client', () => ({
+  apiClient: {
+    post: vi.fn(async () => ({ data: { ok: true } })),
+  },
+}))
+
+vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
 describe('OtpForm', () => {
   let screen: RenderResult
@@ -21,13 +31,9 @@ describe('OtpForm', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
 
-    screen = await render(<OtpForm />)
+    screen = await render(renderWithQueryClient(<OtpForm />))
     otpInput = screen.getByLabelText(/^One-Time Password$/i)
     verifyButton = screen.getByRole('button', { name: /^Verify$/i })
-  })
-
-  afterEach(() => {
-    vi.useRealTimers()
   })
 
   it('disables Verify until 6 digits are entered', async () => {
@@ -40,16 +46,12 @@ describe('OtpForm', () => {
     await expect.element(verifyButton).toBeEnabled()
   })
 
-  it('submits the OTP and navigates after timeout', async () => {
-    vi.useFakeTimers()
-
+  it('submits the OTP and navigates to sign-in after verification', async () => {
     await userEvent.fill(otpInput, '123456')
     await userEvent.click(verifyButton)
 
-    expect(showSubmittedData).toHaveBeenCalledOnce()
-    expect(showSubmittedData).toHaveBeenCalledWith({ otp: '123456' })
-
-    await vi.advanceTimersByTimeAsync(1000)
-    expect(navigate).toHaveBeenCalledWith({ to: '/' })
+    await vi.waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith({ to: '/sign-in' })
+    )
   })
 })

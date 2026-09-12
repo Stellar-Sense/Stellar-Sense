@@ -16,35 +16,39 @@ import { AbilityRadar } from './components/ability-radar'
 import { AiSuggestion } from './components/ai-suggestion'
 import { LearningPath } from './components/learning-path'
 import { RecentLearning } from './components/recent-learning'
+import { useDashboardSummary } from './api'
 
-const statCards = [
-  {
-    title: '学习天数',
-    value: '28 天',
-    description: '连续学习中',
-    icon: CalendarDays,
-  },
-  {
-    title: '已完成节点',
-    value: '24 / 86',
-    description: '知识节点',
-    icon: CheckCircle2,
-  },
-  {
-    title: '学科掌握度',
-    value: '68%',
-    description: '较上周 +8%',
-    icon: Target,
-  },
-  {
-    title: '当前学习阶段',
-    value: '深度学习',
-    description: '建议继续学习 Transformer',
-    icon: TrendingUp,
-  },
-]
+const statIcons = [CalendarDays, CheckCircle2, Target, TrendingUp] as const
 
 export function Dashboard() {
+  const { data } = useDashboardSummary()
+
+  if (!data) {
+    return (
+      <>
+        <Header>
+          <Search />
+          <ThemeSwitch />
+          <ProfileDropdown />
+        </Header>
+
+        <Main
+          fixed
+          className='relative overflow-hidden px-4 py-3 md:px-5 md:py-4'
+        >
+          <div className='flex h-full items-center justify-center text-sm text-slate-400'>
+            正在加载学习驾驶舱…
+          </div>
+        </Main>
+      </>
+    )
+  }
+
+  const statCards = data.stats.map((card, index) => ({
+    ...card,
+    icon: statIcons[index % statIcons.length],
+  }))
+
   return (
     <>
       <Header>
@@ -122,12 +126,12 @@ export function Dashboard() {
                     </CardDescription>
                   </div>
                   <div className='rounded-full border border-violet-400/20 bg-violet-500/10 px-2 py-1 text-[10px] font-medium text-violet-200'>
-                    课程进度 58%
+                    课程进度 {data.courseProgress}%
                   </div>
                 </div>
               </CardHeader>
               <CardContent className='min-h-0 flex-1 px-4 pb-3.5'>
-                <LearningPath />
+                <LearningPath nodes={data.path} />
               </CardContent>
             </Card>
 
@@ -141,13 +145,13 @@ export function Dashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent className='min-h-0 flex-1 px-4 pb-3.5'>
-                <AbilityRadar />
+                <AbilityRadar items={data.radar} />
               </CardContent>
             </Card>
 
-            <RecentLearning />
+            <RecentLearning items={data.recent} />
 
-            <AiSuggestion />
+            <AiSuggestion suggestion={data.suggestion} />
           </div>
         </div>
       </Main>

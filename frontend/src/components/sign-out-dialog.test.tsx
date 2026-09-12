@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { userEvent } from 'vitest/browser'
+import { renderWithQueryClient } from '@/test-utils/query-client'
 import { SignOutDialog } from './sign-out-dialog'
 
 const navigate = vi.fn()
@@ -12,6 +13,12 @@ vi.mock('@/stores/auth-store', () => ({
   useAuthStore: () => ({
     auth: { reset },
   }),
+}))
+
+vi.mock('@/lib/api-client', () => ({
+  apiClient: {
+    post: vi.fn(async () => ({ data: undefined })),
+  },
 }))
 
 vi.mock('@tanstack/react-router', async (importOriginal) => {
@@ -30,7 +37,7 @@ describe('SignOutDialog', () => {
 
   it('calls auth.reset and navigates to sign-in with current location as redirect', async () => {
     const { getByRole } = await render(
-      <SignOutDialog open onOpenChange={vi.fn()} />
+      renderWithQueryClient(<SignOutDialog open onOpenChange={vi.fn()} />)
     )
 
     await userEvent.click(getByRole('button', { name: /^Sign out$/i }))
@@ -45,7 +52,7 @@ describe('SignOutDialog', () => {
 
   it('does not call reset or navigate when Cancel is clicked', async () => {
     const { getByRole } = await render(
-      <SignOutDialog open onOpenChange={vi.fn()} />
+      renderWithQueryClient(<SignOutDialog open onOpenChange={vi.fn()} />)
     )
 
     await userEvent.click(getByRole('button', { name: /^Cancel$/i }))

@@ -1,9 +1,9 @@
-import { useState } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useNavigate } from '@tanstack/react-router'
-import { showSubmittedData } from '@/lib/show-submitted-data'
+import { useNavigate, useSearch } from '@tanstack/react-router'
+import { toast } from 'sonner'
+import { useVerifyOtp } from '@/features/auth/api'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -32,7 +32,9 @@ type OtpFormProps = React.HTMLAttributes<HTMLFormElement>
 
 export function OtpForm({ className, ...props }: OtpFormProps) {
   const navigate = useNavigate()
-  const [isLoading, setIsLoading] = useState(false)
+  const { email } = useSearch({ from: '/(auth)/otp' })
+  const verifyOtp = useVerifyOtp()
+  const isLoading = verifyOtp.isPending
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -43,13 +45,15 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
   const otp = form.watch('otp')
 
   function onSubmit(data: z.infer<typeof formSchema>) {
-    setIsLoading(true)
-    showSubmittedData(data)
-
-    setTimeout(() => {
-      setIsLoading(false)
-      navigate({ to: '/' })
-    }, 1000)
+    verifyOtp.mutate(
+      { email, code: data.otp },
+      {
+        onSuccess: () => {
+          toast.success('验证通过，请使用新密码重新登录')
+          navigate({ to: '/sign-in' })
+        },
+      }
+    )
   }
 
   return (

@@ -1,10 +1,9 @@
+import { useEffect } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link } from '@tanstack/react-router'
-import { showSubmittedData } from '@/lib/show-submitted-data'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Form,
   FormControl,
@@ -14,8 +13,10 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
+import { usePreferences, useUpdatePreferences } from '../api'
 
 const notificationsFormSchema = z.object({
   type: z.enum(['all', 'mentions', 'none'], {
@@ -24,7 +25,7 @@ const notificationsFormSchema = z.object({
         ? 'Please select a notification type.'
         : undefined,
   }),
-  mobile: z.boolean().default(false).optional(),
+  mobile: z.string().max(32).optional(),
   communication_emails: z.boolean().default(false).optional(),
   social_emails: z.boolean().default(false).optional(),
   marketing_emails: z.boolean().default(false).optional(),
@@ -33,8 +34,9 @@ const notificationsFormSchema = z.object({
 
 type NotificationsFormValues = z.infer<typeof notificationsFormSchema>
 
-// This can come from your database or API.
-const defaultValues: Partial<NotificationsFormValues> = {
+const emptyValues: Partial<NotificationsFormValues> = {
+  type: 'all',
+  mobile: '',
   communication_emails: false,
   marketing_emails: false,
   social_emails: true,
@@ -42,15 +44,45 @@ const defaultValues: Partial<NotificationsFormValues> = {
 }
 
 export function NotificationsForm() {
+  const { data } = usePreferences()
+  const updatePreferences = useUpdatePreferences()
+
   const form = useForm<NotificationsFormValues>({
     resolver: zodResolver(notificationsFormSchema),
-    defaultValues,
+    defaultValues: emptyValues,
   })
+
+  useEffect(() => {
+    if (data) {
+      form.reset({
+        type: data.type,
+        mobile: data.mobile ?? '',
+        communication_emails: data.communicationEmails,
+        social_emails: data.socialEmails,
+        marketing_emails: data.marketingEmails,
+        security_emails: data.securityEmails,
+      })
+    }
+  }, [data, form])
 
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit((data) => showSubmittedData(data))}
+        onSubmit={form.handleSubmit((values) =>
+          updatePreferences.mutate(
+            {
+              type: values.type,
+              mobile: values.mobile ? values.mobile : null,
+              communicationEmails: values.communication_emails ?? false,
+              socialEmails: values.social_emails ?? false,
+              marketingEmails: values.marketing_emails ?? false,
+              securityEmails: values.security_emails,
+            },
+            {
+              onSuccess: () => toast.success('通知偏好已更新'),
+            }
+          )
+        )}
         className='space-y-8'
       >
         <FormField
@@ -188,28 +220,15 @@ export function NotificationsForm() {
           control={form.control}
           name='mobile'
           render={({ field }) => (
-            <FormItem className='relative flex flex-row items-start'>
+            <FormItem className='relative'>
+              <FormLabel>Mobile phone (optional)</FormLabel>
               <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
+                <Input placeholder='13800000000' {...field} />
               </FormControl>
-              <div className='space-y-1 leading-none'>
-                <FormLabel>
-                  Use different settings for my mobile devices
-                </FormLabel>
-                <FormDescription>
-                  You can manage your mobile notifications in the{' '}
-                  <Link
-                    to='/settings'
-                    className='underline decoration-dashed underline-offset-4 hover:decoration-solid'
-                  >
-                    mobile settings
-                  </Link>{' '}
-                  page.
-                </FormDescription>
-              </div>
+              <FormDescription>
+                用于移动端的学习提醒，留空表示不开启。
+              </FormDescription>
+              <FormMessage />
             </FormItem>
           )}
         />

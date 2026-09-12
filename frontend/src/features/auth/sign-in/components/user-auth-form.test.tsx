@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, type RenderResult } from 'vitest-browser-react'
 import { type Locator, userEvent } from 'vitest/browser'
+import { renderWithQueryClient } from '@/test-utils/query-client'
 import { UserAuthForm } from './user-auth-form'
 
 const FORM_MESSAGES = {
@@ -10,16 +11,40 @@ const FORM_MESSAGES = {
 } as const
 
 const navigate = vi.fn()
-const setUserMock = vi.fn()
-const setAccessTokenMock = vi.fn()
 
-vi.mock('@/stores/auth-store', () => ({
-  useAuthStore: () => ({
+const { setUserMock, setAccessTokenMock } = vi.hoisted(() => ({
+  setUserMock: vi.fn(),
+  setAccessTokenMock: vi.fn(),
+}))
+
+vi.mock('@/stores/auth-store', () => {
+  const state = {
     auth: {
+      user: null,
       setUser: setUserMock,
+      accessToken: '',
       setAccessToken: setAccessTokenMock,
+      resetAccessToken: vi.fn(),
+      reset: vi.fn(),
     },
-  }),
+  }
+  const useAuthStore = (selector?: (value: typeof state) => unknown) =>
+    selector ? selector(state) : state
+  return { useAuthStore }
+})
+
+vi.mock('@/lib/api-client', () => ({
+  apiClient: {
+    post: vi.fn(async () => ({
+      data: {
+        accountNo: 'ACC001',
+        email: 'a@b.com',
+        role: ['user'],
+        exp: 1893456000000,
+        accessToken: 'mock-access-token',
+      },
+    })),
+  },
 }))
 
 vi.mock('@tanstack/react-router', async (importOriginal) => {
@@ -59,7 +84,7 @@ describe('UserAuthForm', () => {
 
     beforeEach(async () => {
       vi.clearAllMocks()
-      screen = await render(<UserAuthForm />)
+      screen = await render(renderWithQueryClient(<UserAuthForm />))
       emailInput = screen.getByRole('textbox', { name: /^Email$/i })
       passwordInput = screen.getByLabelText(/^Password$/i)
       signInButton = screen.getByRole('button', { name: /^Sign in$/i })
@@ -112,7 +137,7 @@ describe('UserAuthForm', () => {
     vi.clearAllMocks()
 
     const { getByRole, getByLabelText } = await render(
-      <UserAuthForm redirectTo='/settings' />
+      renderWithQueryClient(<UserAuthForm redirectTo='/settings' />)
     )
 
     await userEvent.fill(getByRole('textbox', { name: /Email/i }), 'a@b.com')

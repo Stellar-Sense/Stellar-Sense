@@ -1,8 +1,9 @@
+import { useEffect } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { CaretSortIcon, CheckIcon } from '@radix-ui/react-icons'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { showSubmittedData } from '@/lib/show-submitted-data'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -30,6 +31,8 @@ import {
 } from '@/components/ui/popover'
 import { DatePicker } from '@/components/date-picker'
 
+import { useAccount, useUpdateAccount } from '../api'
+
 const languages = [
   { label: 'English', value: 'en' },
   { label: 'French', value: 'fr' },
@@ -48,25 +51,51 @@ const accountFormSchema = z.object({
     .min(1, 'Please enter your name.')
     .min(2, 'Name must be at least 2 characters.')
     .max(30, 'Name must not be longer than 30 characters.'),
-  dob: z.date('Please select your date of birth.'),
+  dob: z.date('Please select your date of birth.').optional(),
   language: z.string('Please select a language.'),
 })
 
 type AccountFormValues = z.infer<typeof accountFormSchema>
 
-// This can come from your database or API.
-const defaultValues: Partial<AccountFormValues> = {
+const formatDate = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+    date.getDate()
+  ).padStart(2, '0')}`
+
+const emptyValues: Partial<AccountFormValues> = {
   name: '',
 }
 
 export function AccountForm() {
+  const { data } = useAccount()
+  const updateAccount = useUpdateAccount()
+
   const form = useForm<AccountFormValues>({
     resolver: zodResolver(accountFormSchema),
-    defaultValues,
+    defaultValues: emptyValues,
   })
 
-  function onSubmit(data: AccountFormValues) {
-    showSubmittedData(data)
+  useEffect(() => {
+    if (data) {
+      form.reset({
+        name: data.name,
+        dob: data.dob ? new Date(data.dob) : undefined,
+        language: data.language.split('-')[0],
+      })
+    }
+  }, [data, form])
+
+  function onSubmit(values: AccountFormValues) {
+    updateAccount.mutate(
+      {
+        name: values.name,
+        dob: values.dob ? formatDate(values.dob) : null,
+        language: values.language,
+      },
+      {
+        onSuccess: () => toast.success('账号信息已更新'),
+      }
+    )
   }
 
   return (
