@@ -1,3 +1,4 @@
+import type { CompanionMetadata } from '@/lib/chat-stream'
 import { useMutation, useQuery } from '@tanstack/react-query'
 
 import { apiClient } from '@/lib/api-client'
@@ -6,6 +7,7 @@ export type ChatMessage = {
   id: number
   role: 'user' | 'assistant'
   content: string
+  metadata?: CompanionMetadata
 }
 
 export type Conversation = {
@@ -13,6 +15,7 @@ export type Conversation = {
   title: string
   category: string
   messages: ChatMessage[]
+  context?: NonNullable<CompanionMetadata["context"]>
 }
 
 export function useConversations() {
@@ -20,7 +23,7 @@ export function useConversations() {
     queryKey: ['ai', 'conversations'],
     queryFn: async () =>
       (await apiClient.get<Conversation[]>('/ai/conversations')).data,
-    staleTime: 30_000,
+    staleTime: 0,
   })
 }
 

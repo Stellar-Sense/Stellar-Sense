@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
+import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   BookOpen,
@@ -27,6 +27,7 @@ import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { useDashboardSummary } from '@/features/dashboard/api'
+import { CompanionEvidence } from '@/components/companion-evidence'
 import { streamChat } from '@/lib/chat-stream'
 import { cn } from '@/lib/utils'
 
@@ -89,12 +90,13 @@ const nextLocalId = () => {
 
 export function AIAssistant() {
   const navigate = useNavigate()
+  const {conversationId: requestedConversationId} = useSearch({from:'/_authenticated/ai-assistant/'})
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null)
   const queryClient = useQueryClient()
   const { data: serverConversations } = useConversations()
   const { data: dashboard } = useDashboardSummary()
   const createConversation = useCreateConversation()
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(requestedConversationId ?? null)
   const [prompt, setPrompt] = useState('')
   const [isThinking, setIsThinking] = useState(false)
   const [streamingText, setStreamingText] = useState('')
@@ -115,11 +117,14 @@ export function AIAssistant() {
 
   const learningContext = useMemo(
     () => ({
-      stage: dashboard?.stats[3]?.value ?? '遥感影像处理',
-      node: dashboard?.suggestion.topic ?? '图像增强',
-      progress: dashboard?.stats[2]?.value ?? '68%',
+      nodeId: selectedConversation?.context?.node_id,
+      learnerLevel: selectedConversation?.context?.learner_level ?? 'beginner',
+      scene: selectedConversation?.context?.scene ?? 'preview',
+      stage: selectedConversation?.context?.stage ?? dashboard?.stats[3]?.value ?? '遥感影像处理',
+      node: selectedConversation?.context?.node ?? dashboard?.suggestion.topic ?? '图像增强',
+      progress: selectedConversation?.context?.progress ?? dashboard?.stats[2]?.value ?? '68%',
     }),
-    [dashboard]
+    [dashboard, selectedConversation?.context]
   )
 
   useEffect(() => {
@@ -202,7 +207,7 @@ export function AIAssistant() {
           streamedRef.current += delta
           setStreamingText(streamedRef.current)
         },
-        onDone: ({ messageId, conversationId: doneConversationId, title }) => {
+        onDone: ({ messageId, conversationId: doneConversationId, title, metadata }) => {
           const content = streamedRef.current
           updateConversations((prev) =>
             prev.map((conversation) =>
@@ -210,9 +215,10 @@ export function AIAssistant() {
                 ? {
                     ...conversation,
                     title: title || conversation.title,
+                    context: metadata?.context ?? conversation.context,
                     messages: [
                       ...conversation.messages,
-                      { id: messageId, role: 'assistant', content },
+                      { id: messageId, role: 'assistant', content, metadata },
                     ],
                   }
                 : conversation
@@ -263,7 +269,7 @@ export function AIAssistant() {
               </div>
               <div className='flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-200'>
                 <span className='h-2 w-2 rounded-full bg-emerald-400' />
-                在线
+                小遇伴学
               </div>
             </div>
           </div>
@@ -417,6 +423,7 @@ export function AIAssistant() {
                               {message.content.split('\n').map((line, index) => (
                                 <div key={`${message.id}-${index}`}>{line || ' '}</div>
                               ))}
+                              <CompanionEvidence metadata={message.metadata} />
                             </div>
                           </div>
                         ))}
