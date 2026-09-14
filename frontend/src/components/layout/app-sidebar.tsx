@@ -1,3 +1,5 @@
+import { ShieldCheck } from 'lucide-react'
+import { useAuthStore } from '@/stores/auth-store'
 import { useLayout } from '@/context/layout-provider'
 import {
   Sidebar,
@@ -14,6 +16,9 @@ import { TeamSwitcher } from './team-switcher'
 
 export function AppSidebar() {
   const { collapsible, variant } = useLayout()
+  const isAdministrator = useAuthStore((state) =>
+    state.auth.user?.role.includes('admin')
+  )
   return (
     <Sidebar
       collapsible={collapsible}
@@ -27,6 +32,18 @@ export function AppSidebar() {
         {sidebarData.navGroups.map((props) => (
           <NavGroup key={props.title} {...props} />
         ))}
+        {isAdministrator && (
+          <NavGroup
+            title='管理员'
+            items={[
+              {
+                title: '知识星云管理',
+                url: '/knowledge-management',
+                icon: ShieldCheck,
+              },
+            ]}
+          />
+        )}
       </SidebarContent>
       <SidebarFooter className='border-t border-white/10 bg-transparent px-2 py-3'>
         <NavUser user={sidebarData.user} />

@@ -17,12 +17,8 @@ import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
-import {
-  useCompleteNode,
-  useExplainNode,
-  useLearningNode,
-  useLearningNodes,
-} from './api'
+import { useExplainNode, useLearningNode, useLearningNodes } from './api'
+import { NodeAssessment } from './assessment'
 import { LearningStageNav } from './components/learning-stage-nav'
 import { NodeContextActions } from './components/node-context-actions'
 import { NodeLearningAIPanel } from './components/node-learning-ai-panel'
@@ -56,9 +52,9 @@ export function NodeLearning() {
   const [explanationText, setExplanationText] = useState<string | null>(null)
   const [explanationMetadata, setExplanationMetadata] =
     useState<CompanionMetadata>()
+  const assessmentRef = useRef<HTMLDivElement | null>(null)
 
   const { data: overview } = useLearningNodes()
-  const completeNode = useCompleteNode()
   const explainNodeRequest = useExplainNode()
 
   const nodeStatuses = useMemo(() => {
@@ -73,7 +69,7 @@ export function NodeLearning() {
     if (overview && requestedNodeId && nodeStatuses[requestedNodeId]) {
       return requestedNodeId
     }
-    return overview?.currentNodeId ?? null
+    return overview?.currentNodeId ?? overview?.sequence[0] ?? null
   }, [nodeStatuses, overview, requestedNodeId])
 
   const { data: selectedNode } = useLearningNode(effectiveNodeId)
@@ -208,16 +204,10 @@ export function NodeLearning() {
     setCompletedStages((previous) => new Set(previous).add(completedStage))
   }
 
-  const markNodeComplete = () => {
-    if (isContextBusy) {
-      toast.info('请等待当前回复完成后再完成节点')
-      return
-    }
-    completeNode.mutate(selectedNode.id, {
-      onSuccess: (result) => {
-        toast.success(`已完成 ${selectedNode.title}`)
-        if (result.nextNodeId) navigateToNode(result.nextNodeId)
-      },
+  const openAssessment = () => {
+    assessmentRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
     })
   }
 
@@ -361,12 +351,20 @@ export function NodeLearning() {
                   />
                 )}
                 {stage === 'feedback' && (
-                  <FeedbackView
-                    nodeTitle={selectedNode.title}
-                    onStageChange={changeStage}
-                    onCompleteNode={markNodeComplete}
-                    completing={completeNode.isPending || isContextBusy}
-                  />
+                  <div className='space-y-6'>
+                    <FeedbackView
+                      nodeTitle={selectedNode.title}
+                      onStageChange={changeStage}
+                      onOpenAssessment={openAssessment}
+                      assessmentDisabled={isContextBusy}
+                    />
+                    <div ref={assessmentRef}>
+                      <NodeAssessment
+                        key={selectedNode.id}
+                        nodeId={selectedNode.id}
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
 

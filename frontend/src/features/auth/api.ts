@@ -1,9 +1,7 @@
 import { useEffect } from 'react'
-
-import { useMutation, useQuery } from '@tanstack/react-query'
-
-import { apiClient } from '@/lib/api-client'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth-store'
+import { apiClient } from '@/lib/api-client'
 
 export interface AuthUser {
   accountNo: string
@@ -18,14 +16,19 @@ export interface AuthResponse extends AuthUser {
 
 /** 登录：成功后写入全局 auth store（token 持久化在 cookie） */
 export function useLogin() {
+  const queryClient = useQueryClient()
   const setUser = useAuthStore((state) => state.auth.setUser)
   const setAccessToken = useAuthStore((state) => state.auth.setAccessToken)
   return useMutation({
     mutationFn: async (payload: { email: string; password: string }) => {
-      const { data } = await apiClient.post<AuthResponse>('/auth/login', payload)
+      const { data } = await apiClient.post<AuthResponse>(
+        '/auth/login',
+        payload
+      )
       return data
     },
     onSuccess: (data) => {
+      queryClient.clear()
       setUser({
         accountNo: data.accountNo,
         email: data.email,
@@ -39,14 +42,19 @@ export function useLogin() {
 
 /** 注册：注册成功即自动登录 */
 export function useRegister() {
+  const queryClient = useQueryClient()
   const setUser = useAuthStore((state) => state.auth.setUser)
   const setAccessToken = useAuthStore((state) => state.auth.setAccessToken)
   return useMutation({
     mutationFn: async (payload: { email: string; password: string }) => {
-      const { data } = await apiClient.post<AuthResponse>('/auth/register', payload)
+      const { data } = await apiClient.post<AuthResponse>(
+        '/auth/register',
+        payload
+      )
       return data
     },
     onSuccess: (data) => {
+      queryClient.clear()
       setUser({
         accountNo: data.accountNo,
         email: data.email,
@@ -62,10 +70,10 @@ export function useRegister() {
 export function useForgotPassword() {
   return useMutation({
     mutationFn: async (email: string) => {
-      const { data } = await apiClient.post<{ ok: boolean; devCode?: string | null }>(
-        '/auth/forgot-password',
-        { email }
-      )
+      const { data } = await apiClient.post<{
+        ok: boolean
+        devCode?: string | null
+      }>('/auth/forgot-password', { email })
       return data
     },
   })
@@ -75,7 +83,10 @@ export function useForgotPassword() {
 export function useVerifyOtp() {
   return useMutation({
     mutationFn: async (payload: { email?: string; code: string }) => {
-      const { data } = await apiClient.post<{ ok: boolean }>('/auth/verify-otp', payload)
+      const { data } = await apiClient.post<{ ok: boolean }>(
+        '/auth/verify-otp',
+        payload
+      )
       return data
     },
   })
@@ -93,10 +104,9 @@ export function useLogout() {
 /** 刷新页面后依据本地 token 恢复用户信息；401 由全局拦截统一处理 */
 export function useAuthHydration() {
   const token = useAuthStore((state) => state.auth.accessToken)
-  const user = useAuthStore((state) => state.auth.user)
   const setUser = useAuthStore((state) => state.auth.setUser)
   const { data } = useQuery({
-    queryKey: ['auth', 'me'],
+    queryKey: ['auth', 'me', token],
     queryFn: async () => (await apiClient.get<AuthUser>('/auth/me')).data,
     enabled: Boolean(token),
     staleTime: Infinity,
@@ -105,8 +115,8 @@ export function useAuthHydration() {
 
   useEffect(() => {
     // 注意：依赖里不能放整个 store 对象（setUser 会改变其引用导致无限循环）
-    if (data && !user) {
+    if (data) {
       setUser(data)
     }
-  }, [data, user, setUser])
+  }, [data, setUser])
 }

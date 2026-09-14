@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import SessionLocal, get_db
 from app.deps import get_current_user
 from app.models import Conversation, LearningNode, Message, User
+from app.models.chat import CompanionMetadata
 from app.schemas.ai import (
     ChatRequest,
     ConversationCreate,
@@ -21,7 +22,6 @@ from app.schemas.ai import (
     MessageOut,
 )
 from app.services.xiaoyu import companion_service
-from app.models.chat import CompanionMetadata
 
 router = APIRouter()
 
@@ -40,16 +40,33 @@ async def _conversation_payload(db: AsyncSession, conversation: Conversation) ->
             )
         ).scalars()
     )
-    metadata_rows = list((await db.execute(select(CompanionMetadata).where(CompanionMetadata.message_id.in_([m.id for m in messages])))).scalars()) if messages else []
+    metadata_rows = (
+        list(
+            (
+                await db.execute(
+                    select(CompanionMetadata).where(
+                        CompanionMetadata.message_id.in_([m.id for m in messages])
+                    )
+                )
+            ).scalars()
+        )
+        if messages
+        else []
+    )
     metadata = {r.message_id: r.payload for r in metadata_rows}
-    latest_context = next((metadata[m.id].get("context") for m in reversed(messages) if m.id in metadata), None)
+    latest_context = next(
+        (metadata[m.id].get("context") for m in reversed(messages) if m.id in metadata), None
+    )
     return ConversationOut(
         id=conversation.id,
         title=conversation.title,
         category=conversation.category,
         context=latest_context,
         messages=[
-            MessageOut(id=message.id, role=message.role, content=message.content, metadata=metadata.get(message.id)) for message in messages
+            MessageOut(
+                id=message.id, role=message.role, content=message.content, metadata=metadata.get(message.id)
+            )
+            for message in messages
         ],
     )
 
@@ -142,10 +159,22 @@ async def chat(
     ][-12:]
 
     if context is None:
-        saved = (await db.execute(select(CompanionMetadata).join(Message, Message.id == CompanionMetadata.message_id).where(Message.conversation_id == conversation_id).order_by(Message.id.desc()).limit(1))).scalar_one_or_none()
+        saved = (
+            await db.execute(
+                select(CompanionMetadata)
+                .join(Message, Message.id == CompanionMetadata.message_id)
+                .where(Message.conversation_id == conversation_id)
+                .order_by(Message.id.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
         context = saved.payload.get("context") if saved else {}
     node_id = (context or {}).get("node_id") or (context or {}).get("node")
-    node = (await db.execute(select(LearningNode).where(LearningNode.id == node_id))).scalar_one_or_none() if node_id else None
+    node = (
+        (await db.execute(select(LearningNode).where(LearningNode.id == node_id))).scalar_one_or_none()
+        if node_id
+        else None
+    )
 
     async def event_stream():
         yield _sse({"conversationId": conversation_id, "title": conversation_title})
@@ -208,6 +237,10 @@ async def explain(
     if node is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="学习节点不存在")
 
-    result = await companion_service.reply("请解释当前知识点", node,
-        {"node_id": node.id, "learner_level": payload.learner_level, "scene": payload.scene}, [])
+    result = await companion_service.reply(
+        "请解释当前知识点",
+        node,
+        {"node_id": node.id, "learner_level": payload.learner_level, "scene": payload.scene},
+        [],
+    )
     return ExplainResponse(explanation=result["answer"], metadata=result["metadata"])

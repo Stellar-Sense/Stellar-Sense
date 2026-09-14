@@ -15,15 +15,15 @@ import type { LearningStage } from '../types'
 type FeedbackViewProps = {
   nodeTitle: string
   onStageChange: (stage: LearningStage) => void
-  onCompleteNode: () => void
-  completing: boolean
+  onOpenAssessment: () => void
+  assessmentDisabled: boolean
 }
 
 export function FeedbackView({
   nodeTitle,
   onStageChange,
-  onCompleteNode,
-  completing,
+  onOpenAssessment,
+  assessmentDisabled,
 }: FeedbackViewProps) {
   return (
     <section className='space-y-4'>
@@ -60,19 +60,22 @@ export function FeedbackView({
             </div>
           </div>
           <div>
-            <p className='text-lg font-semibold text-white'>本轮学习已完成</p>
+            <p className='text-lg font-semibold text-white'>
+              本轮前端演练已完成
+            </p>
             <div className='mt-2 flex flex-wrap gap-2'>
               <span className='rounded-full bg-emerald-500/12 px-2 py-1 text-xs text-emerald-200'>
                 <Check className='mr-1 inline size-3.5' />
-                已完成本轮学习
+                已完成本轮演练
               </span>
               <span className='rounded-full bg-violet-500/12 px-2 py-1 text-xs text-violet-200'>
                 {feedbackDemo.status}
               </span>
             </div>
             <p className='mt-3 text-xs leading-5 text-slate-300'>
-              你已完成{nodeTitle}
-              节点的全部学习活动，建议针对薄弱点巩固后进入下一节点。
+              你已浏览{nodeTitle}
+              节点的五阶段演练。Demo
+              结果不代表已经掌握，请继续完成下方真实学习评价。
             </p>
           </div>
         </div>
@@ -203,11 +206,11 @@ export function FeedbackView({
         </Button>
         <Button
           type='button'
-          disabled={completing}
-          onClick={onCompleteNode}
+          disabled={assessmentDisabled}
+          onClick={onOpenAssessment}
           className='bg-violet-500 text-white hover:bg-violet-400'
         >
-          {completing ? '正在完成节点…' : '完成本节点并进入下一节点'}
+          查看真实评价与掌握证据
           <ArrowRight className='ml-2 size-4' />
         </Button>
       </div>
