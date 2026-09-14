@@ -189,7 +189,9 @@ describe('node learning integration', () => {
       const target = scroll.mock.contexts[
         scroll.mock.contexts.length - 1
       ] as Element
-      expect(target.querySelector('[aria-label="节点学习评价"]')).not.toBeNull()
+      expect(
+        target.querySelector('[aria-label="学习评价：遥感概论"]')
+      ).not.toBeNull()
 
       await userEvent.click(
         screen.getByRole('button', { name: '在完整助手中继续' })
