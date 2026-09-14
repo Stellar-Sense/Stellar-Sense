@@ -15,7 +15,7 @@ export function LearningPage({
   children,
 }: {
   title: string
-  description: string
+  description?: string
   actions?: ReactNode
   children: ReactNode
 }) {
@@ -33,9 +33,11 @@ export function LearningPage({
               STELLAR SENSE
             </p>
             <h1 className='text-2xl font-semibold'>{title}</h1>
-            <p className='mt-2 max-w-3xl text-sm leading-6 text-slate-400'>
-              {description}
-            </p>
+            {description && (
+              <p className='mt-2 max-w-3xl text-sm leading-6 text-slate-400'>
+                {description}
+              </p>
+            )}
           </div>
           {actions}
         </div>

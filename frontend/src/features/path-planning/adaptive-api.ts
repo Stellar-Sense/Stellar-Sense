@@ -93,9 +93,14 @@ export function useRegeneratePath() {
   return useMutation({
     mutationFn: async () =>
       (await apiClient.post<PathPlanPayload>('/path/regenerate')).data,
-    onSuccess: (data) => {
+    onMutate: () => client.cancelQueries({ queryKey: ['path', 'plan'] }),
+    onSuccess: async (data) => {
       client.setQueryData(['path', 'plan'], data)
-      void client.invalidateQueries({ queryKey: ['path', 'history'] })
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ['path', 'history'] }),
+        client.invalidateQueries({ queryKey: ['dashboard'] }),
+        client.invalidateQueries({ queryKey: ['learning'] }),
+      ])
     },
   })
 }
@@ -104,11 +109,14 @@ export function useUpdateGoal() {
   return useMutation({
     mutationFn: async (goal: Omit<Goal, 'version'>) =>
       (await apiClient.put<PathPlanPayload>('/path/goal', goal)).data,
-    onSuccess: (data) => {
+    onMutate: () => client.cancelQueries({ queryKey: ['path', 'plan'] }),
+    onSuccess: async (data) => {
       client.setQueryData(['path', 'plan'], data)
-      void client.invalidateQueries({ queryKey: ['path', 'history'] })
-      void client.invalidateQueries({ queryKey: ['dashboard'] })
-      void client.invalidateQueries({ queryKey: ['learning'] })
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ['path', 'history'] }),
+        client.invalidateQueries({ queryKey: ['dashboard'] }),
+        client.invalidateQueries({ queryKey: ['learning'] }),
+      ])
     },
   })
 }

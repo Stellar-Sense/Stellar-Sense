@@ -8,11 +8,23 @@ const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   update: vi.fn(),
   record: vi.fn(),
+  progressed: false,
 }))
 
 vi.mock('@tanstack/react-router', () => ({ useNavigate: () => mocks.navigate }))
 vi.mock('@/components/learning-page', () => ({
-  LearningPage: ({ children }: { children: ReactNode }) => children,
+  LearningPage: ({
+    children,
+    actions,
+  }: {
+    children: ReactNode
+    actions: ReactNode
+  }) => (
+    <>
+      {actions}
+      {children}
+    </>
+  ),
   panelClass: '',
 }))
 vi.mock('@/features/node-learning/assessment-api', () => ({
@@ -42,14 +54,17 @@ vi.mock('./adaptive-api', () => {
   return {
     usePathPlan: () => ({
       data: {
-        entries,
+        entries: mocks.progressed
+          ? [{ ...entries[1], status: 'ready', prerequisites: [] }]
+          : entries,
         goal,
         nodes: entries.map((e) => ({
           id: e.nodeId,
           name: e.name,
           domain: e.domain,
         })),
-        version: 2,
+        version: mocks.progressed ? 3 : 2,
+        nextNodeId: mocks.progressed ? 'b' : 'a',
         completedNodeIds: [],
         totalMinutes: 40,
         estimatedDays: 1,
@@ -83,11 +98,16 @@ vi.mock('./adaptive-api', () => {
 describe('adaptive learning path', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.progressed = false
     mocks.record.mockImplementation((_data, options) => options.onSuccess())
+    mocks.update.mockImplementation((_data, options) => options.onSuccess())
   })
 
   it('saves selected targets and daily time, and keeps blocked nodes disabled', async () => {
     const screen = await render(<PathPlanning />)
+    await userEvent.click(
+      screen.getByRole('button', { name: '调整目标', exact: true })
+    )
     await userEvent.click(screen.getByRole('checkbox', { name: /节点 a/ }))
     await userEvent.fill(screen.getByRole('spinbutton'), '30')
     await userEvent.click(screen.getByRole('button', { name: '保存目标' }))
@@ -95,9 +115,29 @@ describe('adaptive learning path', () => {
       { nodeIds: ['b', 'a'], dailyMinutes: 30 },
       expect.anything()
     )
-    const start = screen.getByRole('button', { name: '开始学习' })
-    await expect.element(start.nth(1)).toBeDisabled()
-    await userEvent.click(start.nth(0))
+    await userEvent.click(
+      screen.getByRole('button', { name: '查看 节点 b', exact: true })
+    )
+    await expect
+      .element(screen.getByRole('dialog'))
+      .toHaveTextContent('请先学习这些内容')
+    await expect
+      .element(screen.getByRole('button', { name: '开始学习' }))
+      .toBeDisabled()
+    await userEvent.keyboard('{Escape}')
+    await expect
+      .element(screen.getByText('路径已更新', { exact: true }))
+      .not.toBeInTheDocument()
+    await userEvent.click(
+      screen.getByRole('button', { name: '查看 节点 a', exact: true })
+    )
+    await expect
+      .element(screen.getByRole('dialog'))
+      .not.toHaveTextContent('掌握度')
+    await expect
+      .element(screen.getByRole('dialog'))
+      .not.toHaveTextContent('置信度')
+    await userEvent.click(screen.getByRole('button', { name: '开始学习' }))
     expect(mocks.record).toHaveBeenCalledWith(
       expect.objectContaining({ nodeId: 'a', kind: 'accept' }),
       expect.anything()
@@ -110,20 +150,61 @@ describe('adaptive learning path', () => {
 
   it('replays historical versions without allowing learning events from them', async () => {
     const screen = await render(<PathPlanning />)
+    await userEvent.click(
+      screen.getByRole('button', { name: '历史路线', exact: true })
+    )
     await userEvent.click(screen.getByRole('button', { name: /第 1 版/ }))
     await expect
       .element(screen.getByText('历史路径 · 第 1 版'))
       .toBeInTheDocument()
+    await userEvent.click(
+      screen.getByRole('button', { name: '查看 节点 a', exact: true })
+    )
+    await expect
+      .element(screen.getByRole('dialog'))
+      .toHaveTextContent('历史路线 · 仅供查看')
     await expect
       .element(screen.getByRole('button', { name: '开始学习' }))
       .not.toBeInTheDocument()
     await expect
       .element(screen.getByRole('button', { name: '暂时跳过' }))
       .not.toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
     await userEvent.click(screen.getByRole('button', { name: '返回当前路径' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: '查看 节点 a', exact: true })
+    )
     await expect
       .element(screen.getByRole('button', { name: '开始学习' }).nth(0))
       .toBeEnabled()
     expect(mocks.record).not.toHaveBeenCalled()
+  })
+
+  it('updates an open detail dialog from the latest route and removes stale learning actions', async () => {
+    const screen = await render(<PathPlanning />)
+    await userEvent.click(
+      screen.getByRole('button', { name: '查看 节点 a', exact: true })
+    )
+    mocks.progressed = true
+    await screen.rerender(<PathPlanning />)
+    await expect
+      .element(screen.getByRole('dialog'))
+      .toHaveTextContent('该节点已不在当前待学路线中')
+    await expect
+      .element(screen.getByRole('button', { name: '开始学习' }))
+      .not.toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
+    await expect
+      .element(screen.getByRole('button', { name: '查看 节点 a', exact: true }))
+      .not.toBeInTheDocument()
+    await expect
+      .element(screen.getByRole('button', { name: '查看 节点 b', exact: true }))
+      .toHaveAttribute('aria-current', 'step')
+    await userEvent.click(
+      screen.getByRole('button', { name: '查看 节点 b', exact: true })
+    )
+    await expect
+      .element(screen.getByRole('button', { name: '开始学习' }))
+      .toBeEnabled()
   })
 })

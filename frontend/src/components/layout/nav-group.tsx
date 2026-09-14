@@ -40,7 +40,7 @@ export function NavGroup({ title, items }: NavGroupProps) {
   const { state, isMobile } = useSidebar()
   const href = useLocation({ select: (location) => location.href })
   return (
-    <SidebarGroup>
+    <SidebarGroup className='group-data-[collapsible=icon]:px-1 [&_[data-sidebar=menu-button]]:h-10 [&_[data-sidebar=menu-button]]:text-base [&_[data-sidebar=menu-button]>svg]:size-5 [&_[data-sidebar=menu-sub-button]]:h-9 [&_[data-sidebar=menu-sub-button]]:text-base [&_[data-sidebar=menu-sub-button]>svg]:size-5'>
       <SidebarGroupLabel>{t(title)}</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
