@@ -77,13 +77,45 @@ def relative_time(value: datetime, now: datetime | None = None) -> str:
 async def load_learning_state(
     db: AsyncSession, user_id: int
 ) -> tuple[list[LearningNode], dict[str, UserLearningProgress]]:
+    from app.models.adaptive import LearnerState
+    from app.services.adaptive import plan_inputs
+    from app.services.path_rules import build_decision, expand_dependencies
+
     nodes = list((await db.execute(select(LearningNode).order_by(LearningNode.sort_order))).scalars())
-    rows = list(
-        (
-            await db.execute(select(UserLearningProgress).where(UserLearningProgress.user_id == user_id))
-        ).scalars()
+    inputs = await plan_inputs(db, user_id)
+    selected_path = build_decision(inputs)
+    all_inputs = {**inputs, "goal": {**inputs["goal"], "nodeIds": []}}
+    whole_path = build_decision(all_inputs)
+    completed = set(whole_path["completedNodeIds"])
+    _, expanded = expand_dependencies(inputs["nodes"], inputs["edges"])
+    state_rows = {
+        row.node_id: row
+        for row in await db.scalars(select(LearnerState).where(LearnerState.user_id == user_id))
+    }
+    preferred = [row["nodeId"] for row in selected_path["entries"]]
+    rank = {key: index for index, key in enumerate(preferred)}
+    nodes.sort(
+        key=lambda node: (
+            0 if node.id in completed else 1,
+            rank.get(node.id, len(rank) + node.sort_order),
+            node.id,
+        )
     )
-    return nodes, {row.node_id: row for row in rows}
+    progress = {}
+    for node in nodes:
+        descendants = expanded.get(node.id, {node.id})
+        value = round(
+            sum(inputs["states"].get(key, {}).get("mastery", 0) for key in descendants) / len(descendants)
+        )
+        touched = [state_rows[key].updated_at for key in descendants if key in state_rows]
+        progress[node.id] = UserLearningProgress(
+            user_id=user_id,
+            node_id=node.id,
+            progress=value,
+            completed=descendants <= completed,
+            updated_at=max(touched) if touched else datetime.min,
+        )
+    return nodes, progress
 
 
 def learning_status_map(
@@ -215,7 +247,7 @@ async def build_history(db: AsyncSession, user_id: int, range_key: str) -> dict:
     for (start, end), label in zip(buckets, labels, strict=True):
         bucket_records = [record for record in records if start <= record.studied_at < end]
         minutes = sum(record.duration_minutes for record in bucket_records)
-        scores = [record.score for record in bucket_records if record.score]
+        scores = [record.score for record in bucket_records if not record.is_timeline]
         if scores:
             mastery = round(sum(scores) / len(scores))
         else:
@@ -248,8 +280,8 @@ async def build_history(db: AsyncSession, user_id: int, range_key: str) -> dict:
         {"label": "知识掌握", "value": f"{overall}%", "detail": "持续积累中"},
     ]
 
-    recent_records = [record for record in records if not record.is_timeline][:5]
-    timeline_records = [record for record in records if record.is_timeline][:6]
+    recent_records = [record for record in in_range if not record.is_timeline][:5]
+    timeline_records = [record for record in in_range if record.is_timeline][:6]
 
     return {
         "stats": stats,
@@ -418,6 +450,11 @@ async def build_path_plan_out(db: AsyncSession, user_id: int) -> dict:
 
 
 async def build_dashboard(db: AsyncSession, user_id: int) -> dict:
+    from app.services.adaptive import plan_inputs
+    from app.services.path_rules import build_decision
+
+    inputs = await plan_inputs(db, user_id)
+    adaptive_path = build_decision(inputs)
     nodes, progress = await load_learning_state(db, user_id)
     statuses, current_id = learning_status_map(nodes, progress)
     progress_by_node = node_progress_map(nodes, progress)
@@ -436,11 +473,9 @@ async def build_dashboard(db: AsyncSession, user_id: int) -> dict:
         ).scalars()
     )
     now = datetime.now()
-    week_scores = [r.score for r in records if r.studied_at >= now - timedelta(days=7) and r.score]
+    week_scores = [r.score for r in records if r.studied_at >= now - timedelta(days=7)]
     prev_scores = [
-        r.score
-        for r in records
-        if now - timedelta(days=14) <= r.studied_at < now - timedelta(days=7) and r.score
+        r.score for r in records if now - timedelta(days=14) <= r.studied_at < now - timedelta(days=7)
     ]
     score_delta = (
         round(sum(week_scores) / len(week_scores) - sum(prev_scores) / len(prev_scores))
@@ -448,11 +483,8 @@ async def build_dashboard(db: AsyncSession, user_id: int) -> dict:
         else None
     )
 
-    completions = stage_completions(progress_by_node)
-    stage_map = stage_status_map(completions)
-    active_key = next((key for key, status in stage_map.items() if status == "active"), None)
-    active_stage_title = stage_title(active_key) if active_key else "已完成全部阶段"
-    next_node = next((node for node in nodes if statuses.get(node.id) != "done"), None)
+    next_node = next((node for node in nodes if node.id == adaptive_path["nextNodeId"]), None)
+    active_stage_title = domain_of_node.get(next_node.id, "自主学习") if next_node else "当前目标已完成"
 
     completed_count = sum(1 for node in nodes if (row := progress.get(node.id)) is not None and row.completed)
     studied_days = {record.studied_at.date() for record in records}
@@ -477,13 +509,14 @@ async def build_dashboard(db: AsyncSession, user_id: int) -> dict:
     ]
 
     # 路径节点（按领域顺序，当前节点所在领域标记为 current）
-    current_domain = domain_of_node.get(current_id) if current_id else None
+    current_domain = domain_of_node.get(next_node.id) if next_node else None
     path_nodes: list[dict] = []
-    current_index = DOMAIN_ORDER.index(current_domain) if current_domain in DOMAIN_ORDER else -1
-    for index, domain in enumerate(DOMAIN_ORDER):
-        if index < current_index:
+    domains = list(dict.fromkeys(node["domain"] for node in inputs["nodes"]))
+    for domain in domains:
+        domain_ids = [node.id for node in nodes if domain_of_node.get(node.id) == domain]
+        if domain_ids and all(progress[key].completed for key in domain_ids):
             status = "completed"
-        elif index == current_index:
+        elif domain == current_domain:
             status = "current"
         else:
             status = "upcoming"
@@ -491,10 +524,12 @@ async def build_dashboard(db: AsyncSession, user_id: int) -> dict:
 
     radar = [
         {
-            "subject": subject,
-            "value": _average([progress_by_node.get(node_id, 0) for node_id in node_ids]),
+            "subject": domain,
+            "value": _average(
+                [progress_by_node.get(node.id, 0) for node in nodes if domain_of_node.get(node.id) == domain]
+            ),
         }
-        for subject, node_ids in RADAR_SUBJECTS
+        for domain in domains
     ]
 
     # 最近学习：按更新时间倒序取 4 个有进度的节点
@@ -534,5 +569,9 @@ async def build_dashboard(db: AsyncSession, user_id: int) -> dict:
         "radar": radar,
         "recent": recent,
         "suggestion": suggestion,
-        "course_progress": round(sum(completions.values()) / max(len(completions), 1)),
+        "course_progress": round(
+            len(adaptive_path["completedNodeIds"])
+            / max(len(adaptive_path["completedNodeIds"]) + len(adaptive_path["entries"]), 1)
+            * 100
+        ),
     }

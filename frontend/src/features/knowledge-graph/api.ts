@@ -1,13 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-
 import { apiClient } from '@/lib/api-client'
-
 import type { KnowledgeEdge, KnowledgeNode } from './graph-data'
 
 export type KnowledgeGraphPayload = {
   nodes: KnowledgeNode[]
   edges: KnowledgeEdge[]
   domainOrder: string[]
+  revision?: number
 }
 
 /** 学科星图数据：节点状态与掌握度由后端按当前用户返回 */

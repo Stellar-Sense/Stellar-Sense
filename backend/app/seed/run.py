@@ -333,13 +333,21 @@ async def seed_conversations(session: AsyncSession, user: User) -> None:
 async def run_seed() -> None:
     await init_db()
     async with SessionLocal() as session:
-        await seed_knowledge(session)
-        await seed_learning_nodes(session)
+        from app.models.adaptive import GraphRevision
+
+        revision = await session.get(GraphRevision, 1, with_for_update=True)
+        if revision is not None and revision.version == 1:
+            await seed_knowledge(session)
+            await seed_learning_nodes(session)
         user = await get_or_create_demo_user(session)
-        await seed_user_knowledge_progress(session, user)
-        await seed_user_learning_progress(session, user)
-        await seed_path_plan(session, user)
-        await seed_learning_records(session, user)
+        if revision is not None and revision.version == 1:
+            from app.seed.assessment import seed_assessments
+
+            await seed_user_knowledge_progress(session, user)
+            await seed_user_learning_progress(session, user)
+            await seed_path_plan(session, user)
+            await seed_learning_records(session, user)
+            await seed_assessments(session)
         await seed_conversations(session, user)
         await session.commit()
     await engine.dispose()
