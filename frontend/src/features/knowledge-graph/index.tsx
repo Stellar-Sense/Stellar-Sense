@@ -8,6 +8,7 @@ import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
+import { useCompanionStore } from '@/stores/companion-store'
 import { useKnowledgeGraph } from './api'
 import { FloatingPanel } from './floating-panel'
 import {
@@ -44,6 +45,7 @@ export function KnowledgeGraph() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null)
   const [fallbackNotice, setFallbackNotice] = useState<string | null>(null)
+  const openCompanionForNode = useCompanionStore((state) => state.openForNode)
 
   const { data, isPending } = useKnowledgeGraph()
 
@@ -87,7 +89,21 @@ export function KnowledgeGraph() {
 
   const handleSelectNode = useCallback((nodeId: string | null) => {
     setSelectedNodeId(nodeId)
-  }, [])
+    if (nodeId) {
+      const node = nodeMap[nodeId]
+      if (node) {
+        const detail = getNodeDetail(node)
+        openCompanionForNode({
+          id: node.id,
+          name: node.name,
+          domain: node.domain,
+          progress: detail.progress,
+          description: detail.description,
+          status: node.status,
+        })
+      }
+    }
+  }, [nodeMap, openCompanionForNode])
 
   const handleHoverNode = useCallback((nodeId: string | null) => {
     setHoveredNodeId(nodeId)

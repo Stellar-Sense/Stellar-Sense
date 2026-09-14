@@ -6,6 +6,7 @@ import { SearchProvider } from '@/context/search-provider'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { AccountLanguageSync } from '@/components/account-language-sync'
 import { AppSidebar } from '@/components/layout/app-sidebar'
+import { CompanionPet } from '@/components/companion-pet'
 import { SkipToMain } from '@/components/skip-to-main'
 import { useAuthHydration } from '@/features/auth/api'
 
@@ -35,6 +36,7 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
           >
             {children ?? <Outlet />}
           </SidebarInset>
+          <CompanionPet />
         </SidebarProvider>
       </LayoutProvider>
     </SearchProvider>
