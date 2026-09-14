@@ -60,6 +60,18 @@ def parse_minutes(text: str) -> int:
     return int(match.group(1)) if match else 30
 
 
+def trend_label(days: int, index: int, start: datetime) -> str:
+    """学习趋势分桶标签：7 天按周几、30 天按周、90 天按桶起始日期。
+
+    90 天区间按 6 桶切分（每桶 15 天），原先标为「N 月」会让人误以为按自然月聚合。
+    """
+    if days == 7:
+        return f"周{'一二三四五六日'[start.weekday()]}"
+    if days == 30:
+        return f"第 {index + 1} 周"
+    return f"{start.month}/{start.day}"
+
+
 def relative_time(value: datetime, now: datetime | None = None) -> str:
     now = now or datetime.now()
     delta_days = (now.date() - value.date()).days
@@ -235,12 +247,7 @@ async def build_history(db: AsyncSession, user_id: int, range_key: str) -> dict:
             else today + timedelta(days=1)
         )
         buckets.append((start, end))
-        if days == 7:
-            labels.append(f"周{'一二三四五六日'[start.weekday()]}")
-        elif days == 30:
-            labels.append(f"第 {index + 1} 周")
-        else:
-            labels.append(f"{index + 1} 月")
+        labels.append(trend_label(days, index, start))
 
     trend: list[dict] = []
     last_mastery: int | None = None
@@ -255,8 +262,8 @@ async def build_history(db: AsyncSession, user_id: int, range_key: str) -> dict:
         last_mastery = mastery
         trend.append({"label": label, "minutes": minutes, "mastery": mastery})
 
-    # 连续学习天数
-    studied_days = {record.studied_at.date() for record in records}
+    # 连续学习天数（限定在当前查询区间内，避免 7 天视图出现超过 7 天的连续天数）
+    studied_days = {record.studied_at.date() for record in in_range}
     cursor = now.date()
     if cursor not in studied_days:
         cursor -= timedelta(days=1)
