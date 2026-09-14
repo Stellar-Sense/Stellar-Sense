@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient } from '@/lib/api-client'
+import { type Profile } from '@/features/learner-profile/catalog'
 
 export interface AuthUser {
   accountNo: string
@@ -46,7 +47,11 @@ export function useRegister() {
   const setUser = useAuthStore((state) => state.auth.setUser)
   const setAccessToken = useAuthStore((state) => state.auth.setAccessToken)
   return useMutation({
-    mutationFn: async (payload: { email: string; password: string }) => {
+    mutationFn: async (payload: {
+      email: string
+      password: string
+      learnerProfile: Profile
+    }) => {
       const { data } = await apiClient.post<AuthResponse>(
         '/auth/register',
         payload

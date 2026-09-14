@@ -21,6 +21,7 @@ from app.schemas.ai import (
     ExplainResponse,
     MessageOut,
 )
+from app.services.learner_profile import guidance_context
 from app.services.xiaoyu import companion_service
 
 router = APIRouter()
@@ -176,6 +177,8 @@ async def chat(
         else None
     )
 
+    context = await guidance_context(db, user.id, context)
+
     async def event_stream():
         yield _sse({"conversationId": conversation_id, "title": conversation_title})
         try:
@@ -240,7 +243,9 @@ async def explain(
     result = await companion_service.reply(
         "请解释当前知识点",
         node,
-        {"node_id": node.id, "learner_level": payload.learner_level, "scene": payload.scene},
+        await guidance_context(db, user.id, {
+            "node_id": node.id, "learner_level": payload.learner_level, "scene": payload.scene
+        }),
         [],
     )
     return ExplainResponse(explanation=result["answer"], metadata=result["metadata"])

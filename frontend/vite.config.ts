@@ -21,6 +21,15 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  optimizeDeps: {
+    include: [
+      '@radix-ui/react-select',
+      '@radix-ui/react-popover',
+      'date-fns',
+      'date-fns/locale',
+      'react-day-picker',
+    ],
+  },
   server: {
     proxy: {
       '/api': {
@@ -30,6 +39,7 @@ export default defineConfig({
     },
   },
   test: {
+    setupFiles: ['./src/test-utils/locale-setup.ts'],
     silent: 'passed-only',
     unstubEnvs: true,
     browser: {

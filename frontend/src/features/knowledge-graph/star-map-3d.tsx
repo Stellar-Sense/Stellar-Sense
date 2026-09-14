@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { Crosshair } from 'lucide-react'
+import { t, useLocale } from '@/lib/i18n'
 import {
   getNodeDetail,
   statusLabel,
@@ -37,6 +38,8 @@ export default function StarMap3D({
   onHoverNode,
   onUnsupported,
 }: StarMap3DProps) {
+  useLocale((state) => state.locale)
+
   const { containerRef, labelLayerRef, focusNode, resetView } = useStarMap({
     layout,
     nodeMap,
@@ -81,12 +84,14 @@ export default function StarMap3D({
   }
 
   return (
-    <div className='relative h-full overflow-hidden rounded-2xl border border-white/8 bg-[#02040c]'>
+    <div className='dark relative h-full overflow-hidden rounded-2xl border border-white/8 bg-[#02040c] text-slate-100'>
       <div
         ref={containerRef}
         className='absolute inset-0'
         role='application'
-        aria-label='知识星系三维视图，可拖拽旋转、滚轮缩放，点击行星查看节点详情'
+        aria-label={t(
+          '知识星系三维视图，可拖拽旋转、滚轮缩放，点击行星查看节点详情'
+        )}
       />
       <div
         ref={labelLayerRef}
@@ -100,12 +105,12 @@ export default function StarMap3D({
           className='flex h-8 items-center gap-1.5 rounded-lg border border-sky-400/20 bg-sky-500/10 px-2.5 text-[11px] text-sky-100 hover:bg-sky-500/15'
         >
           <Crosshair className='h-3.5 w-3.5' />
-          返回全景
+          {t('返回全景')}
         </button>
       </div>
 
       <div className='pointer-events-none absolute bottom-3 left-3 z-20 rounded-lg border border-white/10 bg-slate-950/70 px-2.5 py-1.5 text-[10px] text-slate-400 backdrop-blur-sm'>
-        拖拽旋转 · 滚轮缩放 · 点击行星查看详情
+        {t('拖拽旋转 · 滚轮缩放 · 点击行星查看详情')}
       </div>
 
       {hoveredNode && hoveredDetail && (
@@ -127,7 +132,7 @@ export default function StarMap3D({
                 focusNode(node.id)
               }}
             >
-              {node.name}（{statusLabel[node.status]}，{node.domain}）
+              {node.name}（{t(statusLabel[node.status])}，{node.domain}）
             </button>
           </li>
         ))}

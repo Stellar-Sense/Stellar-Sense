@@ -2,7 +2,8 @@
 
 from datetime import date, datetime
 
-from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, String, func
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, LargeBinary, String, func
+from sqlalchemy.dialects.mysql import MEDIUMBLOB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -27,6 +28,20 @@ class UserProfile(TimestampMixin, Base):
     email: Mapped[str] = mapped_column(String(255), default="")
     bio: Mapped[str] = mapped_column(String(512), default="")
     urls: Mapped[list] = mapped_column(JSON, default=list)
+
+
+class LearnerProfile(TimestampMixin, Base):
+    __tablename__ = "learner_profiles"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    payload: Mapped[dict] = mapped_column(JSON)
+
+
+class UserAvatar(Base):
+    __tablename__ = "user_avatars"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    image: Mapped[bytes] = mapped_column(LargeBinary().with_variant(MEDIUMBLOB(), "mysql"))
 
 
 class UserAccount(TimestampMixin, Base):

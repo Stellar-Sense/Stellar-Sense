@@ -10,6 +10,7 @@ import {
 } from 'react-hook-form'
 import * as LabelPrimitive from '@radix-ui/react-label'
 import { Slot } from '@radix-ui/react-slot'
+import { t, useLocale } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { Label } from '@/components/ui/label'
 
@@ -133,6 +134,7 @@ function FormDescription({ className, ...props }: React.ComponentProps<'p'>) {
 }
 
 function FormMessage({ className, ...props }: React.ComponentProps<'p'>) {
+  useLocale((state) => state.locale)
   const { error, formMessageId } = useFormField()
   const body = error ? String(error?.message ?? '') : props.children
 
@@ -147,7 +149,7 @@ function FormMessage({ className, ...props }: React.ComponentProps<'p'>) {
       className={cn('text-sm text-destructive', className)}
       {...props}
     >
-      {body}
+      {typeof body === 'string' ? t(body) : body}
     </p>
   )
 }

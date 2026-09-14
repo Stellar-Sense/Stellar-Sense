@@ -12,7 +12,7 @@ from app.models.knowledge import (
 )
 from app.models.learning import LearningNode, LearningRecord, UserLearningProgress
 from app.models.path import PathPlan, PathStage
-from app.models.user import OtpCode, User, UserAccount, UserPreference, UserProfile
+from app.models.user import OtpCode, User, UserAccount, UserAvatar, UserPreference, UserProfile
 
 __all__ = [
     "Administrator",
@@ -29,6 +29,7 @@ __all__ = [
     "TimestampMixin",
     "User",
     "UserAccount",
+    "UserAvatar",
     "UserKnowledgeProgress",
     "UserLearningProgress",
     "UserPreference",

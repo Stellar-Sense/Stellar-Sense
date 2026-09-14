@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
+import { t, useLocale } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -42,6 +43,8 @@ function EdgeEditor({
   selectedId: string | null
   onSaved: () => void
 }) {
+  useLocale((state) => state.locale)
+
   const [form, setForm] = useState({
     fromId: edge?.fromId ?? selectedId ?? graph.nodes[0]?.id ?? '',
     toId: edge?.toId ?? '',
@@ -63,33 +66,34 @@ function EdgeEditor({
           },
           {
             onSuccess: () => {
-              toast.success('关系已保存')
+              toast.success(t('关系已保存'))
               onSaved()
             },
           }
         )
       }}
     >
-      <h2 className='font-semibold'>{edge ? '编辑关系' : '添加关系'}</h2>
+      <h2 className='font-semibold'>{edge ? t('编辑关系') : t('添加关系')}</h2>
       {graph.revision !== baseRevision && (
         <p role='alert' className='text-xs text-amber-200'>
-          图谱已更新，请重新打开关系编辑后保存。
+          {t('图谱已更新，请重新打开关系编辑后保存。')}
         </p>
       )}
       <p className='text-xs leading-5 text-slate-400'>
-        前置依赖：先学 A，再学 B。包含：A 下含
-        B。只有前置依赖影响解锁；课程或方向的依赖会展开到其包含的知识点。
+        {t(
+          '前置依赖：先学 A，再学 B。包含：A 下含 B。只有前置依赖影响解锁；课程或方向的依赖会展开到其包含的知识点。'
+        )}
       </p>
       {(['fromId', 'toId'] as const).map((key) => (
         <label key={key} className='block text-sm'>
-          {key === 'fromId' ? '起点 A' : '终点 B'}
+          {key === 'fromId' ? t('起点 A') : t('终点 B')}
           <select
             required
             className={selectClass}
             value={form[key]}
             onChange={(e) => setForm({ ...form, [key]: e.target.value })}
           >
-            <option value=''>请选择节点</option>
+            <option value=''>{t('请选择节点')}</option>
             {graph.nodes.map((node) => (
               <option key={node.id} value={node.id}>
                 {node.name} · {node.domain}
@@ -99,7 +103,7 @@ function EdgeEditor({
         </label>
       ))}
       <label className='block text-sm'>
-        关系类型
+        {t('关系类型')}
         <select
           className={selectClass}
           value={form.relation}
@@ -109,28 +113,28 @@ function EdgeEditor({
         >
           {Object.entries(relationLabels).map(([key, label]) => (
             <option key={key} value={key}>
-              {label}
+              {t(label)}
             </option>
           ))}
         </select>
       </label>
       <label className='block text-sm'>
-        关系原因
+        {t('关系原因')}
         <Textarea
           required
           maxLength={512}
           value={form.reason}
           onChange={(e) => setForm({ ...form, reason: e.target.value })}
-          placeholder='说明为什么需要这条关系'
+          placeholder={t('说明为什么需要这条关系')}
         />
       </label>
       <div className='flex gap-2'>
         <Button type='submit' disabled={mutation.isPending}>
-          保存关系
+          {t('保存关系')}
         </Button>
         {edge && (
           <Button type='button' variant='ghost' onClick={onSaved}>
-            取消编辑
+            {t('取消编辑')}
           </Button>
         )}
       </div>
@@ -139,6 +143,8 @@ function EdgeEditor({
 }
 
 export function KnowledgeManagement() {
+  useLocale((state) => state.locale)
+
   const user = useAuthStore((state) => state.auth.user)
   const allowed = Boolean(user?.role.includes('admin'))
   const query = useManagedGraph(allowed)
@@ -166,44 +172,57 @@ export function KnowledgeManagement() {
     graph?.nodes.find((node) => node.id === id)?.name ?? id
   return (
     <LearningPage
-      title='知识星云管理'
-      description='维护学科方向、课程与知识节点，以及整个星图的依赖关系。修改会同步影响学习导航和后续路径计算。'
+      title={t('知识星云管理')}
+      description={t(
+        '维护学科方向、课程与知识节点，以及整个星图的依赖关系。修改会同步影响学习导航和后续路径计算。'
+      )}
       actions={
         allowed && (
           <div className='flex gap-2'>
             <Button variant='outline' onClick={() => void query.refetch()}>
               <RefreshCw className='mr-2 size-4' />
-              刷新
+              {t('刷新')}
             </Button>
             <Button onClick={() => setEditingNode('new')}>
               <Plus className='mr-2 size-4' />
-              新建节点
+              {t('新建节点')}
             </Button>
           </div>
         )
       }
     >
       {!user ? (
-        <p role='status'>正在确认管理员身份…</p>
+        <p role='status'>{t('正在确认管理员身份…')}</p>
       ) : !allowed ? (
         <div role='alert' className={panelClass}>
           <ShieldCheck className='mb-3 size-6 text-amber-300' />
-          仅管理员可访问知识星云管理。普通用户可以在学科星图中查看和学习。
+          {t(
+            '仅管理员可访问知识星云管理。普通用户可以在学科星图中查看和学习。'
+          )}
         </div>
       ) : query.isPending ? (
-        <p role='status'>正在加载知识星图…</p>
+        <p role='status'>{t('正在加载知识星图…')}</p>
       ) : query.isError ? (
         <div role='alert' className={panelClass}>
-          加载失败，请确认管理员身份或刷新重试。
+          {t('加载失败，请确认管理员身份或刷新重试。')}
         </div>
       ) : (
         graph && (
           <>
             <div className='flex flex-wrap gap-4 text-sm text-slate-300'>
-              <span>{graph.nodes.length} 个节点</span>
-              <span>{graph.edges.length} 条关系</span>
-              <span>图谱版本 {graph.revision}</span>
-              <span className='text-sky-300'>管理员专用</span>
+              <span>
+                {graph.nodes.length}
+                {t('个节点')}
+              </span>
+              <span>
+                {graph.edges.length}
+                {t('条关系')}
+              </span>
+              <span>
+                {t('图谱版本')}
+                {graph.revision}
+              </span>
+              <span className='text-sky-300'>{t('管理员专用')}</span>
             </div>
             <div className='grid items-start gap-5 xl:grid-cols-[1fr_360px]'>
               <div className='space-y-5'>
@@ -211,41 +230,41 @@ export function KnowledgeManagement() {
                   <div className='mb-4 flex flex-wrap items-center justify-between gap-3'>
                     <h2 className='flex items-center gap-2 font-semibold'>
                       <Network className='size-4' />
-                      关系总览
+                      {t('关系总览')}
                     </h2>
                     <select
-                      aria-label='筛选关系类型'
+                      aria-label={t('筛选关系类型')}
                       className={`${selectClass} max-w-44`}
                       value={filter}
                       onChange={(e) =>
                         setFilter(e.target.value as Relation | 'all')
                       }
                     >
-                      <option value='all'>全部关系</option>
+                      <option value='all'>{t('全部关系')}</option>
                       {Object.entries(relationLabels).map(([key, label]) => (
                         <option key={key} value={key}>
-                          {label}
+                          {t(label)}
                         </option>
                       ))}
                     </select>
                   </div>
                   <p className='mb-3 text-xs leading-6 text-slate-400'>
-                    圆点是知识节点，连线是已保存的关系。位置远近不代表先修顺序。
-                    点选节点会高亮它直接相连的关系，并在下方列出关系方向与原因；点击空白处恢复总览。
-                    右上角筛选会同时影响图中的连线和下方关系列表。
+                    {t(
+                      '圆点是知识节点，连线是已保存的关系。位置远近不代表先修顺序。 点选节点会高亮它直接相连的关系，并在下方列出关系方向与原因；点击空白处恢复总览。 右上角筛选会同时影响图中的连线和下方关系列表。'
+                    )}
                   </p>
                   <div className='mb-3 flex flex-wrap gap-x-5 gap-y-2 text-xs'>
                     <span className='text-sky-300'>
-                      A → B · 前置：先学 A，再学 B
+                      {t('A → B · 前置：先学 A，再学 B')}
                     </span>
                     <span className='text-violet-400'>
-                      A → B · 包含：A 下含 B
+                      {t('A → B · 包含：A 下含 B')}
                     </span>
                     <span className='text-emerald-400'>
-                      A → B · 应用：A 应用于 B
+                      {t('A → B · 应用：A 应用于 B')}
                     </span>
                     <span className='text-amber-400'>
-                      A — B · 关联：A 与 B 有联系
+                      {t('A — B · 关联：A 与 B 有联系')}
                     </span>
                   </div>
                   <div className='relative h-[420px] overflow-hidden rounded-xl bg-slate-950'>
@@ -254,7 +273,7 @@ export function KnowledgeManagement() {
                       nodes={graph.nodes.map((node) => ({
                         ...node,
                         status: 'unlearned' as const,
-                        duration: `${node.minutes} 分钟`,
+                        duration: t('{0} 分钟', node.minutes),
                         progress: 0,
                         prerequisites: graph.edges
                           .filter(
@@ -282,14 +301,15 @@ export function KnowledgeManagement() {
                     />
                   </div>
                   <p className='mt-2 text-xs text-slate-500'>
-                    图内滚轮只缩放，移出图外滚动页面；拖动空白处平移，拖动节点临时调整位置。
-                    保存位置请编辑节点坐标；新增或修改关系请使用右侧表单。
+                    {t(
+                      '图内滚轮只缩放，移出图外滚动页面；拖动空白处平移，拖动节点临时调整位置。 保存位置请编辑节点坐标；新增或修改关系请使用右侧表单。'
+                    )}
                   </p>
                 </section>
                 <section className={panelClass}>
                   <Input
-                    aria-label='搜索管理节点'
-                    placeholder='搜索节点或领域'
+                    aria-label={t('搜索管理节点')}
+                    placeholder={t('搜索节点或领域')}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                   />
@@ -311,7 +331,7 @@ export function KnowledgeManagement() {
                         >
                           {node.name}
                           <span className='mt-1 block text-xs text-slate-400'>
-                            {kindLabels[node.kind]} · {node.domain}
+                            {t(kindLabels[node.kind])} · {node.domain}
                           </span>
                         </button>
                       ))}
@@ -320,7 +340,9 @@ export function KnowledgeManagement() {
                 <section className={panelClass}>
                   <div className='flex items-center justify-between'>
                     <h2 className='font-semibold'>
-                      {selected ? `${selected.name} 的关系` : '全部节点关系'}
+                      {selected
+                        ? t('{0} 的关系', selected.name)
+                        : t('全部节点关系')}
                     </h2>
                     {selected && (
                       <Button
@@ -328,7 +350,7 @@ export function KnowledgeManagement() {
                         variant='ghost'
                         onClick={() => setSelectedId(null)}
                       >
-                        显示全部
+                        {t('显示全部')}
                       </Button>
                     )}
                   </div>
@@ -342,13 +364,17 @@ export function KnowledgeManagement() {
                           <p className='text-sm'>
                             {name(edge.fromId)}{' '}
                             <span className='text-sky-300'>
-                              —{relationLabels[edge.relation]}→
+                              —{t(relationLabels[edge.relation])}→
                             </span>{' '}
                             {name(edge.toId)}
                           </p>
                           <div className='flex shrink-0 gap-1'>
                             <Button
-                              aria-label={`编辑关系 ${name(edge.fromId)} 到 ${name(edge.toId)}`}
+                              aria-label={t(
+                                '编辑关系 {0} 到 {1}',
+                                name(edge.fromId),
+                                name(edge.toId)
+                              )}
                               size='icon'
                               variant='ghost'
                               onClick={() => setEditingEdge(edge)}
@@ -356,7 +382,11 @@ export function KnowledgeManagement() {
                               <Pencil className='size-4' />
                             </Button>
                             <Button
-                              aria-label={`删除关系 ${name(edge.fromId)} 到 ${name(edge.toId)}`}
+                              aria-label={t(
+                                '删除关系 {0} 到 {1}',
+                                name(edge.fromId),
+                                name(edge.toId)
+                              )}
                               size='icon'
                               variant='ghost'
                               onClick={() =>
@@ -377,19 +407,25 @@ export function KnowledgeManagement() {
                     ))}
                     {!visibleEdges.length && (
                       <p className='py-4 text-sm text-slate-400'>
-                        当前筛选下没有关系。
+                        {t('当前筛选下没有关系。')}
                       </p>
                     )}
                   </div>
                 </section>
                 <section className={panelClass}>
-                  <h2 className='mb-3 font-semibold'>最近维护记录</h2>
+                  <h2 className='mb-3 font-semibold'>{t('最近维护记录')}</h2>
                   <div className='space-y-2 text-xs text-slate-400'>
                     {changes.data?.slice(0, 10).map((change) => (
                       <p key={change.version}>
-                        版本 {change.version} · {change.action} · 管理员 #
+                        {t('版本')}
+                        {change.version} · {change.action}
+                        {t('· 管理员 #')}
                         {change.administratorId} ·{' '}
-                        {new Date(change.createdAt).toLocaleString()}
+                        {new Date(change.createdAt).toLocaleString(
+                          useLocale.getState().locale === 'zh'
+                            ? 'zh-CN'
+                            : 'en-US'
+                        )}
                       </p>
                     ))}
                   </div>
@@ -412,18 +448,19 @@ export function KnowledgeManagement() {
                     <section className={`${panelClass} space-y-3`}>
                       <h2 className='font-semibold'>{selected.name}</h2>
                       <p className='text-xs text-slate-400'>
-                        {kindLabels[selected.kind]} · {selected.domain} ·{' '}
-                        {selected.minutes} 分钟
+                        {t(kindLabels[selected.kind])} · {selected.domain} ·{' '}
+                        {selected.minutes}
+                        {t('分钟')}
                       </p>
                       <p className='text-sm leading-6 whitespace-pre-wrap'>
-                        {selected.description || '尚无知识说明'}
+                        {selected.description || t('尚无知识说明')}
                       </p>
                       <div className='flex gap-2'>
                         <Button
                           size='sm'
                           onClick={() => setEditingNode('edit')}
                         >
-                          编辑节点
+                          {t('编辑节点')}
                         </Button>
                         <Button
                           size='sm'
@@ -435,7 +472,7 @@ export function KnowledgeManagement() {
                             })
                           }
                         >
-                          删除节点
+                          {t('删除节点')}
                         </Button>
                       </div>
                     </section>
@@ -462,11 +499,14 @@ export function KnowledgeManagement() {
               onOpenChange={(open) => {
                 if (!open) setRemoving(null)
               }}
-              title='确认删除'
-              desc={`删除“${removing?.label ?? ''}”会改变公共星图和后续路径。有依赖或学习记录的节点不能删除。`}
+              title={t('确认删除')}
+              desc={t(
+                '删除“{0}”会改变公共星图和后续路径。有依赖或学习记录的节点不能删除。',
+                removing?.label ?? ''
+              )}
               destructive
-              cancelBtnText='取消'
-              confirmText='确认删除'
+              cancelBtnText={t('取消')}
+              confirmText={t('确认删除')}
               isLoading={mutation.isPending}
               handleConfirm={() => {
                 if (removing)
@@ -480,7 +520,7 @@ export function KnowledgeManagement() {
                       onSuccess: () => {
                         setRemoving(null)
                         setSelectedId(null)
-                        toast.success('已删除')
+                        toast.success(t('已删除'))
                       },
                     }
                   )

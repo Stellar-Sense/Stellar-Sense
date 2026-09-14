@@ -1,12 +1,13 @@
 import { Outlet } from '@tanstack/react-router'
 import { getCookie } from '@/lib/cookies'
 import { cn } from '@/lib/utils'
-import { useAuthHydration } from '@/features/auth/api'
 import { LayoutProvider } from '@/context/layout-provider'
 import { SearchProvider } from '@/context/search-provider'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { AccountLanguageSync } from '@/components/account-language-sync'
 import { AppSidebar } from '@/components/layout/app-sidebar'
 import { SkipToMain } from '@/components/skip-to-main'
+import { useAuthHydration } from '@/features/auth/api'
 
 type AuthenticatedLayoutProps = {
   children?: React.ReactNode
@@ -18,6 +19,7 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
   const defaultOpen = getCookie('sidebar_state') !== 'false'
   return (
     <SearchProvider>
+      <AccountLanguageSync />
       <LayoutProvider>
         <SidebarProvider defaultOpen={defaultOpen}>
           <SkipToMain />

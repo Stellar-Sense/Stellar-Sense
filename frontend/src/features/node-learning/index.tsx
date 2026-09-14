@@ -10,13 +10,13 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { CompanionMetadata } from '@/lib/chat-stream'
+import { t, useLocale } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
-import { ThemeSwitch } from '@/components/theme-switch'
 import { useExplainNode, useLearningNode, useLearningNodes } from './api'
 import { NodeAssessment } from './assessment'
 import { LearningStageNav } from './components/learning-stage-nav'
@@ -35,6 +35,8 @@ import { QuizView } from './views/quiz-view'
 const EMPTY_STAGES = new Set<LearningStage>()
 
 export function NodeLearning() {
+  useLocale((state) => state.locale)
+
   const navigate = useNavigate()
   const { nodeId: requestedNodeId, stage: requestedStage } = useSearch({
     from: '/_authenticated/node-learning/',
@@ -133,7 +135,7 @@ export function NodeLearning() {
         >
           <div className='flex h-full items-center justify-center gap-2 text-sm text-slate-400'>
             <Loader2 className='size-4 animate-spin text-sky-300' />
-            正在加载节点内容…
+            {t('正在加载节点内容…')}
           </div>
         </Main>
       </>
@@ -163,7 +165,7 @@ export function NodeLearning() {
 
   const navigateToNode = (nodeId: string) => {
     if (isContextBusy) {
-      toast.info('请等待当前回复完成后再切换节点')
+      toast.info(t('请等待当前回复完成后再切换节点'))
       return
     }
     resetNodeExperience()
@@ -175,7 +177,7 @@ export function NodeLearning() {
 
   const changeStage = (nextStage: LearningStage) => {
     if (isContextBusy) {
-      toast.info('请等待当前回复完成后再切换学习阶段')
+      toast.info(t('请等待当前回复完成后再切换学习阶段'))
       return
     }
     setCompletedStages((previous) => new Set(previous).add(stage))
@@ -221,7 +223,7 @@ export function NodeLearning() {
           setExplanationText(data.explanation)
           setExplanationMetadata(data.metadata)
         },
-        onError: () => toast.error('小遇暂时无法生成讲解，请稍后重试'),
+        onError: () => toast.error(t('小遇暂时无法生成讲解，请稍后重试')),
       }
     )
   }
@@ -270,16 +272,18 @@ export function NodeLearning() {
                 </p>
               </div>
               <div className='min-w-72 flex-[2] rounded-xl border border-sky-400/20 bg-sky-500/6 px-3 py-2 text-xs leading-5 text-slate-300'>
-                <strong className='mr-2 text-cyan-300'>本节目标：</strong>
+                <strong className='mr-2 text-cyan-300'>
+                  {t('本节目标：')}
+                </strong>
                 {selectedNode.objectives[0] ?? selectedNode.summary}
               </div>
               <span className='inline-flex items-center gap-1.5 rounded-xl border border-violet-400/20 bg-violet-500/10 px-3 py-2 text-xs font-medium text-violet-200'>
                 <Sparkles className='size-4' />
-                掌握度 {selectedNode.progress}%
+                {t('掌握度')} {selectedNode.progress}%
               </span>
               <span className='inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-xs text-slate-300'>
                 <Clock3 className='size-4 text-cyan-300' />
-                预计学习时间 {selectedNode.duration}
+                {t('预计学习时间')} {selectedNode.duration}
               </span>
             </div>
           </section>
@@ -377,10 +381,10 @@ export function NodeLearning() {
                   className='border-slate-700 bg-slate-900 text-slate-200'
                 >
                   <ArrowLeft className='mr-2 size-4' />
-                  上一个节点
+                  {t('上一个节点')}
                 </Button>
                 <div className='text-[11px] text-slate-500'>
-                  当前阶段：{stageLabels[stage]}
+                  {t('当前阶段')}：{t(stageLabels[stage])}
                 </div>
                 <div className='flex gap-2'>
                   <Button
@@ -393,7 +397,7 @@ export function NodeLearning() {
                     onClick={nextNode}
                     className='bg-sky-500 text-white hover:bg-sky-400'
                   >
-                    下一个节点
+                    {t('下一个节点')}
                     <ArrowRight className='ml-2 size-4' />
                   </Button>
                 </div>
@@ -435,7 +439,6 @@ function PageHeader() {
   return (
     <Header>
       <Search className='me-auto' />
-      <ThemeSwitch />
       <ProfileDropdown />
     </Header>
   )

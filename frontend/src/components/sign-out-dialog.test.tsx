@@ -1,8 +1,11 @@
+import { renderWithQueryClient } from '@/test-utils/query-client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { userEvent } from 'vitest/browser'
-import { renderWithQueryClient } from '@/test-utils/query-client'
+import { useLocale } from '@/lib/i18n'
 import { SignOutDialog } from './sign-out-dialog'
+
+beforeEach(() => useLocale.getState().setLocale('en'))
 
 const navigate = vi.fn()
 const reset = vi.fn()

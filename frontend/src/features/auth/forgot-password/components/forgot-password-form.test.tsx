@@ -1,8 +1,11 @@
+import { renderWithQueryClient } from '@/test-utils/query-client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, type RenderResult } from 'vitest-browser-react'
 import { userEvent, type Locator } from 'vitest/browser'
-import { renderWithQueryClient } from '@/test-utils/query-client'
+import { useLocale } from '@/lib/i18n'
 import { ForgotPasswordForm } from './forgot-password-form'
+
+beforeEach(() => useLocale.getState().setLocale('en'))
 
 const navigateMock = vi.fn()
 

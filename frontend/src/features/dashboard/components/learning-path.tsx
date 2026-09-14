@@ -1,4 +1,5 @@
 import { Check, Circle } from 'lucide-react'
+import { t, useLocale } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import type { DashboardPathNode } from '../api'
 
@@ -7,6 +8,8 @@ type LearningPathProps = {
 }
 
 export function LearningPath({ nodes }: LearningPathProps) {
+  useLocale((state) => state.locale)
+
   const currentNode = nodes.find((node) => node.status === 'current')
   const nextNode = nodes.find((node) => node.status === 'upcoming')
   return (
@@ -42,7 +45,7 @@ export function LearningPath({ nodes }: LearningPathProps) {
               <div className='mt-2.5 w-full'>
                 <p
                   className={cn(
-                    'text-[12px] font-medium leading-5',
+                    'text-[12px] leading-5 font-medium',
                     node.status === 'completed' && 'text-sky-100',
                     node.status === 'current' && 'text-violet-100',
                     node.status === 'upcoming' && 'text-slate-400'
@@ -58,10 +61,12 @@ export function LearningPath({ nodes }: LearningPathProps) {
 
       <div className='mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-300'>
         <span className='rounded-full border border-sky-400/20 bg-sky-500/10 px-2.5 py-1'>
-          当前节点：{currentNode?.title ?? '—'}
+          {t('当前节点：')}
+          {currentNode?.title ?? '—'}
         </span>
         <span className='rounded-full border border-violet-400/20 bg-violet-500/10 px-2.5 py-1'>
-          下一节点：{nextNode?.title ?? '—'}
+          {t('下一节点：')}
+          {nextNode?.title ?? '—'}
         </span>
       </div>
     </div>

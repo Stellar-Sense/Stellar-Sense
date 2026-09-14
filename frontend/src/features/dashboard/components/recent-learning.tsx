@@ -1,4 +1,5 @@
 import { ArrowUpRight, CheckCircle2 } from 'lucide-react'
+import { t, useLocale } from '@/lib/i18n'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   Card,
@@ -14,14 +15,16 @@ type RecentLearningProps = {
 }
 
 export function RecentLearning({ items }: RecentLearningProps) {
+  useLocale((state) => state.locale)
+
   return (
     <Card className='flex min-h-0 flex-col border border-white/10 bg-slate-950/70 shadow-[0_12px_30px_rgba(15,23,42,0.45)] backdrop-blur-sm'>
       <CardHeader className='shrink-0 pt-3.5 pb-2'>
         <CardTitle className='text-base font-semibold text-white'>
-          最近学习
+          {t('最近学习')}
         </CardTitle>
         <CardDescription className='text-xs text-slate-300'>
-          你最近学习的知识节点
+          {t('你最近学习的知识节点')}
         </CardDescription>
       </CardHeader>
       <CardContent className='min-h-0 flex-1 space-y-2.5 overflow-y-auto pb-3.5'>
@@ -43,12 +46,14 @@ export function RecentLearning({ items }: RecentLearningProps) {
                     {item.title}
                   </p>
                   <div className='flex items-center gap-1 text-[10px] font-medium text-slate-300'>
-                    {item.status}
+                    {t(item.status)}
                     <ArrowUpRight className='h-3.5 w-3.5 text-sky-300' />
                   </div>
                 </div>
 
-                <p className='mt-1 text-[11px] text-slate-400'>{item.description}</p>
+                <p className='mt-1 text-[11px] text-slate-400'>
+                  {item.description}
+                </p>
 
                 <div className='mt-2 flex items-center gap-2'>
                   <div className='h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800'>

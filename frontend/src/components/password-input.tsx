@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { Eye, EyeOff } from 'lucide-react'
+import { t, useLocale } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { Button } from './ui/button'
 
@@ -16,6 +17,7 @@ export function PasswordInput({
   ref,
   ...props
 }: PasswordInputProps) {
+  useLocale((state) => state.locale)
   const [showPassword, setShowPassword] = React.useState(false)
 
   return (
@@ -37,7 +39,7 @@ export function PasswordInput({
       >
         {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
         <span className='sr-only'>
-          {showPassword ? 'Hide password' : 'Show password'}
+          {showPassword ? t('Hide password') : t('Show password')}
         </span>
       </Button>
     </div>

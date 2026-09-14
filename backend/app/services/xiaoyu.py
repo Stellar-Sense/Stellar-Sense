@@ -136,6 +136,9 @@ class CompanionService:
                 'JSON格式示例：{"answer":"资料不足","cited_chunk_ids":[],"suggested_action":"补充资料"}。'
                 "只在数组中引用实际支撑回答的chunkId，不编造引用。无支撑时数组为空。"
                 + explanation_policy(context.get("learner_level", "beginner"))
+                + "根据context中的learner_profile选择贴近背景与兴趣的例子、讲解步骤及练习形式。"
+                "基础标签仅为自评，不代表已掌握；当前问题和明确指定的讲解深度优先。"
+                "未知或缺少的画像项不要猜测，不要把标签当作专业事实或课程资料。"
                 + scene,
             },
             {
