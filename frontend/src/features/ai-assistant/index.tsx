@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
+import { useNavigate, useSearch } from '@tanstack/react-router'
 import {
   BookOpen,
   Bot,
@@ -16,21 +16,20 @@ import {
   Target,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { streamChat } from '@/lib/chat-stream'
+import { t, useLocale } from '@/lib/i18n'
+import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Textarea } from '@/components/ui/textarea'
+import { CompanionEvidence } from '@/components/companion-evidence'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
-import { ThemeSwitch } from '@/components/theme-switch'
 import { useDashboardSummary } from '@/features/dashboard/api'
-import { CompanionEvidence } from '@/components/companion-evidence'
-import { streamChat } from '@/lib/chat-stream'
-import { cn } from '@/lib/utils'
-
 import {
   useConversations,
   useCreateConversation,
@@ -38,12 +37,7 @@ import {
   type Conversation,
 } from './api'
 
-const featureBadges = [
-  '知识问答',
-  '学习规划',
-  '错题解析',
-  '知识总结',
-] as const
+const featureBadges = ['知识问答', '学习规划', '错题解析', '知识总结'] as const
 
 const quickQuestions = [
   '什么是遥感影像增强？',
@@ -89,14 +83,20 @@ const nextLocalId = () => {
 }
 
 export function AIAssistant() {
+  useLocale((state) => state.locale)
+
   const navigate = useNavigate()
-  const {conversationId: requestedConversationId} = useSearch({from:'/_authenticated/ai-assistant/'})
+  const { conversationId: requestedConversationId } = useSearch({
+    from: '/_authenticated/ai-assistant/',
+  })
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null)
   const queryClient = useQueryClient()
   const { data: serverConversations } = useConversations()
   const { data: dashboard } = useDashboardSummary()
   const createConversation = useCreateConversation()
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(requestedConversationId ?? null)
+  const [selectedConversationId, setSelectedConversationId] = useState<
+    string | null
+  >(requestedConversationId ?? null)
   const [prompt, setPrompt] = useState('')
   const [isThinking, setIsThinking] = useState(false)
   const [streamingText, setStreamingText] = useState('')
@@ -104,7 +104,8 @@ export function AIAssistant() {
 
   const list = useMemo(() => serverConversations ?? [], [serverConversations])
   const selectedConversation =
-    list.find((conversation) => conversation.id === selectedConversationId) ?? list[0]
+    list.find((conversation) => conversation.id === selectedConversationId) ??
+    list[0]
 
   const updateConversations = (
     updater: (previous: Conversation[]) => Conversation[]
@@ -120,9 +121,18 @@ export function AIAssistant() {
       nodeId: selectedConversation?.context?.node_id,
       learnerLevel: selectedConversation?.context?.learner_level ?? 'beginner',
       scene: selectedConversation?.context?.scene ?? 'preview',
-      stage: selectedConversation?.context?.stage ?? dashboard?.stats[3]?.value ?? '遥感影像处理',
-      node: selectedConversation?.context?.node ?? dashboard?.suggestion.topic ?? '图像增强',
-      progress: selectedConversation?.context?.progress ?? dashboard?.stats[2]?.value ?? '68%',
+      stage:
+        selectedConversation?.context?.stage ??
+        dashboard?.stats[3]?.value ??
+        '遥感影像处理',
+      node:
+        selectedConversation?.context?.node ??
+        dashboard?.suggestion.topic ??
+        '图像增强',
+      progress:
+        selectedConversation?.context?.progress ??
+        dashboard?.stats[2]?.value ??
+        '68%',
     }),
     [dashboard, selectedConversation?.context]
   )
@@ -136,7 +146,7 @@ export function AIAssistant() {
       <>
         <Header>
           <Search className='me-auto' />
-          <ThemeSwitch />
+
           <ProfileDropdown />
         </Header>
 
@@ -145,7 +155,7 @@ export function AIAssistant() {
           className='relative overflow-hidden px-4 py-3 md:px-5 md:py-4'
         >
           <div className='flex h-full items-center justify-center text-sm text-slate-400'>
-            正在加载对话…
+            {t('正在加载对话…')}
           </div>
         </Main>
       </>
@@ -207,7 +217,12 @@ export function AIAssistant() {
           streamedRef.current += delta
           setStreamingText(streamedRef.current)
         },
-        onDone: ({ messageId, conversationId: doneConversationId, title, metadata }) => {
+        onDone: ({
+          messageId,
+          conversationId: doneConversationId,
+          title,
+          metadata,
+        }) => {
           const content = streamedRef.current
           updateConversations((prev) =>
             prev.map((conversation) =>
@@ -240,7 +255,7 @@ export function AIAssistant() {
     <>
       <Header>
         <Search className='me-auto' />
-        <ThemeSwitch />
+
         <ProfileDropdown />
       </Header>
 
@@ -249,8 +264,8 @@ export function AIAssistant() {
         className='relative overflow-hidden px-4 py-3 md:px-5 md:py-4'
       >
         <div className='pointer-events-none absolute inset-0 overflow-hidden'>
-          <div className='absolute -left-8 top-6 h-52 w-52 rounded-full bg-sky-500/10 blur-3xl' />
-          <div className='absolute right-8 top-10 h-64 w-64 rounded-full bg-violet-500/10 blur-3xl' />
+          <div className='absolute top-6 -left-8 h-52 w-52 rounded-full bg-sky-500/10 blur-3xl' />
+          <div className='absolute top-10 right-8 h-64 w-64 rounded-full bg-violet-500/10 blur-3xl' />
           <div className='absolute bottom-6 left-1/3 h-52 w-52 rounded-full bg-cyan-400/8 blur-3xl' />
           <div className='absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(96,165,250,0.12),transparent_28%),radial-gradient(circle_at_80%_25%,rgba(168,85,247,0.08),transparent_24%)]' />
         </div>
@@ -259,17 +274,17 @@ export function AIAssistant() {
           <div className='shrink-0 rounded-2xl border border-white/10 bg-slate-950/65 px-4 py-2.5 shadow-[0_12px_30px_rgba(15,23,42,0.42)] backdrop-blur-sm'>
             <div className='flex flex-wrap items-center justify-between gap-2'>
               <div className='flex min-w-0 flex-wrap items-center gap-3'>
-                <span className='inline-flex shrink-0 items-center gap-1.5 rounded-full border border-sky-400/20 bg-sky-500/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-sky-200'>
+                <span className='inline-flex shrink-0 items-center gap-1.5 rounded-full border border-sky-400/20 bg-sky-500/10 px-2.5 py-1 text-[10px] font-medium tracking-[0.2em] text-sky-200 uppercase'>
                   <Sparkles className='h-3 w-3' />
-                  AI 学习助手
+                  {t('AI 学习助手')}
                 </span>
                 <h1 className='text-lg font-bold tracking-tight text-white md:text-xl'>
-                  你的专属遥感学习伙伴
+                  {t('你的专属遥感学习伙伴')}
                 </h1>
               </div>
               <div className='flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-200'>
                 <span className='h-2 w-2 rounded-full bg-emerald-400' />
-                小遇伴学
+                {t('小遇伴学')}
               </div>
             </div>
           </div>
@@ -282,7 +297,9 @@ export function AIAssistant() {
                     <Bot className='h-4 w-4' />
                   </div>
                   <div>
-                    <div className='text-sm font-semibold text-white'>AI 学习助手</div>
+                    <div className='text-sm font-semibold text-white'>
+                      {t('AI 学习助手')}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -293,12 +310,12 @@ export function AIAssistant() {
                 onClick={handleCreateConversation}
               >
                 <Plus className='mr-2 h-4 w-4' />
-                新建对话
+                {t('新建对话')}
               </Button>
 
               <div className='mt-3 flex min-h-0 flex-1 flex-col'>
-                <div className='mb-2 text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400'>
-                  最近对话
+                <div className='mb-2 text-[10px] font-medium tracking-[0.2em] text-slate-400 uppercase'>
+                  {t('最近对话')}
                 </div>
                 <div className='min-h-0 flex-1 space-y-2 overflow-y-auto pr-1'>
                   {list.map((conversation) => (
@@ -325,7 +342,8 @@ export function AIAssistant() {
                         </Badge>
                       </div>
                       <div className='mt-1 line-clamp-2 text-xs text-slate-400'>
-                        {conversation.messages[conversation.messages.length - 1]?.content ?? '暂无内容'}
+                        {conversation.messages[conversation.messages.length - 1]
+                          ?.content ?? t('暂无内容')}
                       </div>
                     </button>
                   ))}
@@ -333,15 +351,15 @@ export function AIAssistant() {
               </div>
 
               <div className='mt-3 shrink-0'>
-                <div className='mb-2 text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400'>
-                  功能分类
+                <div className='mb-2 text-[10px] font-medium tracking-[0.2em] text-slate-400 uppercase'>
+                  {t('功能分类')}
                 </div>
                 <div className='flex flex-wrap gap-1.5'>
                   {featureBadges.map((tag) => (
                     <Badge
                       key={tag}
                       variant='outline'
-                      className='rounded-full border-slate-700 bg-slate-900/50 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-slate-200'
+                      className='rounded-full border-slate-700 bg-slate-900/50 px-2.5 py-1 text-[10px] tracking-[0.14em] text-slate-200 uppercase'
                     >
                       {tag}
                     </Badge>
@@ -359,8 +377,8 @@ export function AIAssistant() {
                         <MessageSquareText className='h-4 w-4' />
                       </div>
                       <div>
-                        <div className='text-[10px] font-medium uppercase tracking-[0.18em] text-slate-400'>
-                          AI 学习助手
+                        <div className='text-[10px] font-medium tracking-[0.18em] text-slate-400 uppercase'>
+                          {t('AI 学习助手')}
                         </div>
                         <CardTitle className='mt-0.5 text-base font-semibold text-white'>
                           {selectedConversation.title}
@@ -370,13 +388,16 @@ export function AIAssistant() {
 
                     <div className='flex flex-wrap items-center gap-2 text-xs text-slate-300'>
                       <div className='rounded-full border border-slate-700 bg-slate-900/60 px-2 py-1'>
-                        当前节点：{learningContext.node}
+                        {t('当前节点：')}
+                        {learningContext.node}
                       </div>
                       <div className='rounded-full border border-slate-700 bg-slate-900/60 px-2 py-1'>
-                        当前学习阶段：{learningContext.stage}
+                        {t('当前学习阶段：')}
+                        {learningContext.stage}
                       </div>
                       <div className='rounded-full border border-violet-500/20 bg-violet-500/10 px-2 py-1 text-violet-200'>
-                        学习进度：{learningContext.progress}
+                        {t('学习进度：')}
+                        {learningContext.progress}
                       </div>
                     </div>
                   </div>
@@ -386,17 +407,20 @@ export function AIAssistant() {
                   <div className='mb-2.5 shrink-0 rounded-2xl border border-slate-800 bg-slate-900/60 px-2.5 py-2 text-xs leading-5 text-slate-300'>
                     <div className='flex items-center gap-2 text-slate-200'>
                       <BookOpen className='h-3.5 w-3.5 text-sky-300' />
-                      当前上下文
+                      {t('当前上下文')}
                     </div>
                     <div className='mt-1.5 flex flex-wrap gap-1.5 text-[11px]'>
                       <span className='rounded-full border border-slate-700 bg-slate-950/70 px-2 py-1'>
-                        当前节点：{learningContext.node}
+                        {t('当前节点：')}
+                        {learningContext.node}
                       </span>
                       <span className='rounded-full border border-slate-700 bg-slate-950/70 px-2 py-1'>
-                        当前学习阶段：{learningContext.stage}
+                        {t('当前学习阶段：')}
+                        {learningContext.stage}
                       </span>
                       <span className='rounded-full border border-violet-500/20 bg-violet-500/10 px-2 py-1 text-violet-200'>
-                        学习进度：{learningContext.progress}
+                        {t('学习进度：')}
+                        {learningContext.progress}
                       </span>
                     </div>
                   </div>
@@ -409,7 +433,9 @@ export function AIAssistant() {
                             key={message.id}
                             className={cn(
                               'flex',
-                              message.role === 'user' ? 'justify-end' : 'justify-start'
+                              message.role === 'user'
+                                ? 'justify-end'
+                                : 'justify-start'
                             )}
                           >
                             <div
@@ -420,9 +446,13 @@ export function AIAssistant() {
                                   : 'border border-sky-500/25 bg-sky-500/10 text-sky-50'
                               )}
                             >
-                              {message.content.split('\n').map((line, index) => (
-                                <div key={`${message.id}-${index}`}>{line || ' '}</div>
-                              ))}
+                              {message.content
+                                .split('\n')
+                                .map((line, index) => (
+                                  <div key={`${message.id}-${index}`}>
+                                    {line || ' '}
+                                  </div>
+                                ))}
                               <CompanionEvidence metadata={message.metadata} />
                             </div>
                           </div>
@@ -432,7 +462,9 @@ export function AIAssistant() {
                           <div className='flex justify-start'>
                             <div className='max-w-[88%] rounded-2xl border border-slate-700 bg-slate-900/80 px-3 py-2.5 text-sm leading-7 text-slate-200'>
                               {streamingText.split('\n').map((line, index) => (
-                                <div key={`streaming-${index}`}>{line || ' '}</div>
+                                <div key={`streaming-${index}`}>
+                                  {line || ' '}
+                                </div>
                               ))}
                             </div>
                           </div>
@@ -442,7 +474,7 @@ export function AIAssistant() {
                           <div className='flex justify-start'>
                             <div className='flex max-w-[88%] items-center gap-2 rounded-2xl border border-slate-700 bg-slate-900/80 px-3 py-2.5 text-sm text-slate-300'>
                               <Loader2 className='h-3.5 w-3.5 animate-spin text-sky-300' />
-                              AI 正在思考……
+                              {t('AI 正在思考……')}
                             </div>
                           </div>
                         )}
@@ -462,7 +494,7 @@ export function AIAssistant() {
                         className='rounded-full border-slate-700 bg-slate-900/50 text-xs text-slate-200 hover:bg-slate-800'
                         onClick={() => handleSendMessage(question)}
                       >
-                        {question}
+                        {t(question)}
                       </Button>
                     ))}
                   </div>
@@ -474,7 +506,7 @@ export function AIAssistant() {
                         variant='outline'
                         size='icon'
                         className='h-9 w-9 rounded-xl border-slate-700 bg-slate-950/70 text-slate-200 hover:bg-slate-800'
-                        aria-label='添加资料'
+                        aria-label={t('添加资料')}
                       >
                         <Paperclip className='h-4 w-4' />
                       </Button>
@@ -488,7 +520,9 @@ export function AIAssistant() {
                             handleSendMessage()
                           }
                         }}
-                        placeholder='输入你的问题，例如：帮我解释一下 Transformer 的 Self-Attention'
+                        placeholder={t(
+                          '输入你的问题，例如：帮我解释一下 Transformer 的 Self-Attention'
+                        )}
                         className='min-h-[44px] flex-1 resize-none rounded-xl border-slate-700 bg-slate-950/70 text-sm text-white placeholder:text-slate-400'
                       />
 
@@ -511,21 +545,25 @@ export function AIAssistant() {
                 <div className='rounded-2xl border border-slate-800 bg-slate-900/60 p-3'>
                   <div className='flex items-center gap-2 text-sm font-medium text-slate-200'>
                     <Target className='h-4 w-4 text-sky-300' />
-                    我的学习状态
+                    {t('我的学习状态')}
                   </div>
 
                   <div className='mt-2.5 space-y-2 text-sm'>
                     <div className='flex items-center justify-between'>
-                      <span className='text-slate-400'>当前阶段</span>
-                    <span className='text-white'>{learningContext.stage}</span>
-                  </div>
-                  <div className='flex items-center justify-between'>
-                    <span className='text-slate-400'>当前节点</span>
-                    <span className='text-white'>{learningContext.node}</span>
-                  </div>
-                  <div className='flex items-center justify-between'>
-                    <span className='text-slate-400'>总体掌握度</span>
-                    <span className='text-sky-200'>{learningContext.progress}</span>
+                      <span className='text-slate-400'>{t('当前阶段')}</span>
+                      <span className='text-white'>
+                        {learningContext.stage}
+                      </span>
+                    </div>
+                    <div className='flex items-center justify-between'>
+                      <span className='text-slate-400'>{t('当前节点')}</span>
+                      <span className='text-white'>{learningContext.node}</span>
+                    </div>
+                    <div className='flex items-center justify-between'>
+                      <span className='text-slate-400'>{t('总体掌握度')}</span>
+                      <span className='text-sky-200'>
+                        {learningContext.progress}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -533,7 +571,7 @@ export function AIAssistant() {
                 <div className='rounded-2xl border border-slate-800 bg-slate-900/60 p-3'>
                   <div className='flex items-center gap-2 text-sm font-medium text-slate-200'>
                     <Compass className='h-4 w-4 text-violet-300' />
-                    AI 为你推荐
+                    {t('AI 为你推荐')}
                   </div>
 
                   <div className='mt-2.5 space-y-2'>
@@ -541,17 +579,31 @@ export function AIAssistant() {
                       <button
                         key={item.title}
                         type='button'
-                        onClick={() => navigate({ to: item.route as '/node-learning' | '/path-planning' })}
+                        onClick={() =>
+                          navigate({
+                            to: item.route as
+                              | '/node-learning'
+                              | '/path-planning',
+                          })
+                        }
                         className={cn(
                           'flex w-full items-start justify-between gap-3 rounded-xl border px-3 py-2 text-left transition-all',
-                          item.accent === 'blue' && 'border-sky-500/20 bg-sky-500/8 hover:bg-sky-500/12',
-                          item.accent === 'purple' && 'border-violet-500/20 bg-violet-500/8 hover:bg-violet-500/12',
-                          item.accent === 'cyan' && 'border-cyan-500/20 bg-cyan-500/8 hover:bg-cyan-500/12'
+                          item.accent === 'blue' &&
+                            'border-sky-500/20 bg-sky-500/8 hover:bg-sky-500/12',
+                          item.accent === 'purple' &&
+                            'border-violet-500/20 bg-violet-500/8 hover:bg-violet-500/12',
+                          item.accent === 'cyan' &&
+                            'border-cyan-500/20 bg-cyan-500/8 hover:bg-cyan-500/12'
                         )}
                       >
                         <div>
-                          <div className='text-sm font-medium text-white'>{item.title}</div>
-                          <div className='mt-1 text-xs text-slate-300'>预计：{item.estimate}</div>
+                          <div className='text-sm font-medium text-white'>
+                            {t(item.title)}
+                          </div>
+                          <div className='mt-1 text-xs text-slate-300'>
+                            {t('预计：')}
+                            {t(item.estimate)}
+                          </div>
                         </div>
                         <ChevronRight className='mt-1 h-4 w-4 text-slate-300' />
                       </button>
@@ -562,13 +614,18 @@ export function AIAssistant() {
                 <div className='rounded-2xl border border-slate-800 bg-slate-900/60 p-3'>
                   <div className='flex items-center gap-2 text-sm font-medium text-slate-200'>
                     <BrainCircuit className='h-4 w-4 text-emerald-300' />
-                    AI 能力
+                    {t('AI 能力')}
                   </div>
 
                   <div className='mt-2.5 space-y-2'>
                     {capabilityList.map((item) => (
-                      <div key={item} className='flex items-center justify-between gap-3'>
-                        <span className='text-sm text-slate-200'>{item}</span>
+                      <div
+                        key={item}
+                        className='flex items-center justify-between gap-3'
+                      >
+                        <span className='text-sm text-slate-200'>
+                          {t(item)}
+                        </span>
                         <span className='flex h-6 w-6 items-center justify-center rounded-full border border-emerald-500/25 bg-emerald-500/10 text-emerald-200'>
                           <span className='text-[10px]'>✓</span>
                         </span>

@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
 import { z } from 'zod'
-import { useFieldArray, useForm } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+import { t, useLocale } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -15,8 +15,8 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { useProfile, useUpdateProfile } from '../api'
+import { AvatarUpload } from './avatar-upload'
 
 const profileFormSchema = z.object({
   username: z
@@ -29,14 +29,6 @@ const profileFormSchema = z.object({
         ? 'Please select an email to display.'
         : undefined,
   }),
-  bio: z.string().max(160).min(4),
-  urls: z
-    .array(
-      z.object({
-        value: z.url('Please enter a valid URL.'),
-      })
-    )
-    .optional(),
 })
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>
@@ -44,11 +36,11 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>
 const emptyValues: Partial<ProfileFormValues> = {
   username: '',
   email: '',
-  bio: '',
-  urls: [],
 }
 
 export function ProfileForm() {
+  useLocale((state) => state.locale)
+
   const { data } = useProfile()
   const updateProfile = useUpdateProfile()
 
@@ -58,18 +50,11 @@ export function ProfileForm() {
     mode: 'onChange',
   })
 
-  const { fields, append } = useFieldArray({
-    name: 'urls',
-    control: form.control,
-  })
-
   useEffect(() => {
     if (data) {
       form.reset({
         username: data.username,
         email: data.email,
-        bio: data.bio,
-        urls: data.urls ?? [],
       })
     }
   }, [data, form])
@@ -79,26 +64,26 @@ export function ProfileForm() {
       <form
         onSubmit={form.handleSubmit((values) =>
           updateProfile.mutate(
-            { ...values, urls: values.urls ?? [] },
+            { ...values, bio: data?.bio ?? '', urls: data?.urls ?? [] },
             {
-              onSuccess: () => toast.success('个人资料已更新'),
+              onSuccess: () => toast.success(t('个人资料已更新')),
             }
           )
         )}
         className='space-y-8'
       >
+        <AvatarUpload />
         <FormField
           control={form.control}
           name='username'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Username</FormLabel>
+              <FormLabel>{t('Username')}</FormLabel>
               <FormControl>
-                <Input placeholder='shadcn' {...field} />
+                <Input placeholder={t('Enter your username')} {...field} />
               </FormControl>
               <FormDescription>
-                This is your public display name. It can be your real name or a
-                pseudonym. You can only change this once every 30 days.
+                {t('用于个人资料展示，可以填写真实姓名或昵称。')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -109,71 +94,18 @@ export function ProfileForm() {
           name='email'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>{t('Email')}</FormLabel>
               <FormControl>
                 <Input disabled {...field} />
               </FormControl>
               <FormDescription>
-                邮箱来自你的账号，当前暂不支持在个人资料中修改。
+                {t('邮箱来自你的账号，当前暂不支持在个人资料中修改。')}
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name='bio'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Bio</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder='Tell us a little bit about yourself'
-                  className='resize-none'
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                You can <span>@mention</span> other users and organizations to
-                link to them.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div>
-          {fields.map((field, index) => (
-            <FormField
-              control={form.control}
-              key={field.id}
-              name={`urls.${index}.value`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className={cn(index !== 0 && 'sr-only')}>
-                    URLs
-                  </FormLabel>
-                  <FormDescription className={cn(index !== 0 && 'sr-only')}>
-                    Add links to your website, blog, or social media profiles.
-                  </FormDescription>
-                  <FormControl className={cn(index !== 0 && 'mt-1.5')}>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          ))}
-          <Button
-            type='button'
-            variant='outline'
-            size='sm'
-            className='mt-2'
-            onClick={() => append({ value: '' })}
-          >
-            Add URL
-          </Button>
-        </div>
-        <Button type='submit'>Update profile</Button>
+        <Button type='submit'>{t('Update profile')}</Button>
       </form>
     </Form>
   )

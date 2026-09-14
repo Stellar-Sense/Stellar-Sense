@@ -49,6 +49,11 @@ export type PathResult = {
   nextNodeId: string | null
 }
 export type PathPlanPayload = PathResult & {
+  profileSuggestion?: {
+    nodeIds: string[]
+    dailyMinutes: number
+    reason: string
+  } | null
   goal: Goal
   version: number
   changed: boolean

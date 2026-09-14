@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useForgotPassword } from '@/features/auth/api'
+import { t, useLocale } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,6 +16,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { useForgotPassword } from '@/features/auth/api'
 
 const formSchema = z.object({
   email: z.email({
@@ -27,6 +28,8 @@ export function ForgotPasswordForm({
   className,
   ...props
 }: React.HTMLAttributes<HTMLFormElement>) {
+  useLocale((state) => state.locale)
+
   const navigate = useNavigate()
   const forgotPassword = useForgotPassword()
   const isLoading = forgotPassword.isPending
@@ -41,9 +44,9 @@ export function ForgotPasswordForm({
       onSuccess: (result) => {
         form.reset()
         if (result.devCode) {
-          toast.success(`验证码（开发模式）：${result.devCode}`)
+          toast.success(t('验证码（开发模式）：{0}', result.devCode))
         } else {
-          toast.success(`重置验证码已发送至 ${data.email}`)
+          toast.success(t('重置验证码已发送至 {0}', data.email))
         }
         navigate({ to: '/otp', search: { email: data.email } })
       },
@@ -62,7 +65,7 @@ export function ForgotPasswordForm({
           name='email'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>{t('Email')}</FormLabel>
               <FormControl>
                 <Input placeholder='name@example.com' {...field} />
               </FormControl>
@@ -71,7 +74,7 @@ export function ForgotPasswordForm({
           )}
         />
         <Button className='mt-2' disabled={isLoading}>
-          Continue
+          {t('Continue')}
           {isLoading ? <Loader2 className='animate-spin' /> : <ArrowRight />}
         </Button>
       </form>

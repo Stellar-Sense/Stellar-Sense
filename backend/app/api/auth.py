@@ -11,6 +11,7 @@ from app.config import settings
 from app.database import get_db
 from app.deps import AuthContext, effective_roles, get_auth_context
 from app.models import OtpCode, User, UserAccount, UserPreference, UserProfile
+from app.models.user import LearnerProfile
 from app.schemas.auth import (
     AuthUserResponse,
     ForgotPasswordRequest,
@@ -62,6 +63,7 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
     db.add(UserProfile(user_id=user.id, username=default_name, email=payload.email, bio="", urls=[]))
     db.add(UserAccount(user_id=user.id, name=default_name, dob=None, language="zh-CN"))
     db.add(UserPreference(user_id=user.id))
+    db.add(LearnerProfile(user_id=user.id, payload=payload.learner_profile.model_dump()))
     await db.commit()
     return await _token_response(user, db)
 

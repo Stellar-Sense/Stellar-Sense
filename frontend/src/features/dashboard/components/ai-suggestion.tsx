@@ -1,12 +1,8 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Bot, Clock3, Sparkles } from 'lucide-react'
+import { t, useLocale } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { DashboardSuggestion } from '../api'
 
 type AiSuggestionProps = {
@@ -14,6 +10,8 @@ type AiSuggestionProps = {
 }
 
 export function AiSuggestion({ suggestion }: AiSuggestionProps) {
+  useLocale((state) => state.locale)
+
   const navigate = useNavigate()
 
   return (
@@ -25,7 +23,7 @@ export function AiSuggestion({ suggestion }: AiSuggestionProps) {
           <div className='flex h-8 w-8 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-500/10 text-cyan-200'>
             <Bot className='h-4 w-4' />
           </div>
-          ✦ AI 学习建议
+          {t('✦ AI 学习建议')}
         </CardTitle>
       </CardHeader>
 
@@ -33,17 +31,17 @@ export function AiSuggestion({ suggestion }: AiSuggestionProps) {
         <div className='rounded-2xl border border-white/10 bg-slate-900/60 p-3'>
           <div className='mb-3 flex items-center gap-2 text-sm font-medium text-cyan-200'>
             <Sparkles className='h-4 w-4' />
-            推荐学习主题
+            {t('推荐学习主题')}
           </div>
           <p className='text-sm leading-7 text-slate-200'>
-            根据你的近期学习记录，推荐你继续学习：
+            {t('根据你的近期学习记录，推荐你继续学习：')}
             <span className='font-semibold text-white'>{suggestion.topic}</span>
           </p>
         </div>
 
         <div className='space-y-2 rounded-2xl border border-violet-400/20 bg-violet-500/10 p-3'>
-          <p className='text-xs uppercase tracking-[0.18em] text-violet-200/80'>
-            预计学习时间
+          <p className='text-xs tracking-[0.18em] text-violet-200/80 uppercase'>
+            {t('预计学习时间')}
           </p>
           <div className='flex items-center gap-2 text-sm text-violet-100'>
             <Clock3 className='h-4 w-4 text-violet-200' />
@@ -56,7 +54,7 @@ export function AiSuggestion({ suggestion }: AiSuggestionProps) {
           onClick={() => navigate({ to: '/node-learning' })}
         >
           <Sparkles className='mr-2 h-4 w-4' />
-          开始学习 →
+          {t('开始学习 →')}
         </Button>
       </CardContent>
     </Card>

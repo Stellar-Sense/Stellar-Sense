@@ -1,3 +1,4 @@
+import { t, useLocale } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { statusLabel, type KnowledgeNode, type NodeDetail } from './graph-data'
 
@@ -9,6 +10,8 @@ type NodeHoverCardProps = {
 
 /** 2D 与 3D 视图共用的节点悬停卡片 */
 export function NodeHoverCard({ node, detail, className }: NodeHoverCardProps) {
+  useLocale((state) => state.locale)
+
   return (
     <div
       className={cn(
@@ -20,10 +23,10 @@ export function NodeHoverCard({ node, detail, className }: NodeHoverCardProps) {
         {node.name}
       </div>
       <div className='mt-1 text-[10px] text-slate-300'>
-        {node.domain} · {statusLabel[node.status]}
+        {node.domain} · {t(statusLabel[node.status])}
       </div>
       <div className='mt-2 flex items-center justify-between text-[10px] text-slate-300'>
-        <span>掌握度</span>
+        <span>{t('掌握度')}</span>
         <span>{detail.progress}%</span>
       </div>
       <div className='mt-1 h-1.5 overflow-hidden rounded-full bg-slate-800'>
@@ -33,8 +36,10 @@ export function NodeHoverCard({ node, detail, className }: NodeHoverCardProps) {
         />
       </div>
       <div className='mt-2 text-[10px] text-slate-300'>
-        前置知识：
-        {node.prerequisites.length > 0 ? node.prerequisites.join('、') : '无'}
+        {t('前置知识：')}
+        {node.prerequisites.length > 0
+          ? node.prerequisites.join('、')
+          : t('无')}
       </div>
     </div>
   )

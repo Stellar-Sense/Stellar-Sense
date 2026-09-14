@@ -1,8 +1,11 @@
+import { renderWithQueryClient } from '@/test-utils/query-client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, type RenderResult } from 'vitest-browser-react'
 import { type Locator, userEvent } from 'vitest/browser'
-import { renderWithQueryClient } from '@/test-utils/query-client'
+import { useLocale } from '@/lib/i18n'
 import { OtpForm } from './otp-form'
+
+beforeEach(() => useLocale.getState().setLocale('en'))
 
 const navigate = vi.fn()
 

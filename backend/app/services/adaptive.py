@@ -19,6 +19,7 @@ from app.models.adaptive import (
 from app.schemas.adaptive import EventWrite
 from app.services.evaluator import evaluate_answer
 from app.services.graph import graph_snapshot, public_task
+from app.services.learner_profile import daily_minutes, profile_for, suggest_targets
 from app.services.path_rules import (
     RULE_VERSION,
     RULES,
@@ -38,7 +39,12 @@ async def lock_learner(db: AsyncSession, user_id: int):
 async def goal_for(db: AsyncSession, user_id: int) -> LearningGoal:
     goal = await db.get(LearningGoal, user_id)
     if goal is None:
-        goal = LearningGoal(user_id=user_id, node_ids=[], daily_minutes=45, version=1)
+        goal = LearningGoal(
+            user_id=user_id,
+            node_ids=[],
+            daily_minutes=daily_minutes(await profile_for(db, user_id)),
+            version=1,
+        )
         db.add(goal)
         await db.flush()
     return goal
@@ -55,6 +61,7 @@ def state_payload(state: LearnerState | None) -> dict:
 
 async def plan_inputs(db: AsyncSession, user_id: int) -> dict:
     graph = await graph_snapshot(db)
+    profile = await profile_for(db, user_id)
     goal = await db.get(LearningGoal, user_id)
     states = {
         row.node_id: state_payload(row)
@@ -97,7 +104,8 @@ async def plan_inputs(db: AsyncSession, user_id: int) -> dict:
         "tasks": tasks,
         "goal": {"nodeIds": list(goal.node_ids), "dailyMinutes": goal.daily_minutes, "version": goal.version}
         if goal
-        else {"nodeIds": [], "dailyMinutes": 45, "version": 1},
+        else {"nodeIds": [], "dailyMinutes": daily_minutes(profile), "version": 1},
+        "profileSuggestion": suggest_targets(profile, graph["nodes"]),
         "rules": dict(RULES),
         "ruleVersion": RULE_VERSION,
         "asOf": now.isoformat(),
@@ -137,6 +145,7 @@ async def recompute(db: AsyncSession, user_id: int, trigger: str) -> dict:
     return {
         **result,
         "goal": inputs["goal"],
+        "profileSuggestion": inputs.get("profileSuggestion"),
         "version": latest.version,
         "changed": changed,
         "ruleVersion": RULE_VERSION,
