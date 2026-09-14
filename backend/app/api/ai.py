@@ -20,8 +20,8 @@ from app.schemas.ai import (
     ExplainResponse,
     MessageOut,
 )
-from app.services.llm import llm_service
-from app.services.prompts import build_messages
+from app.services.xiaoyu import companion_service
+from app.models.chat import CompanionMetadata
 
 router = APIRouter()
 
@@ -40,12 +40,16 @@ async def _conversation_payload(db: AsyncSession, conversation: Conversation) ->
             )
         ).scalars()
     )
+    metadata_rows = list((await db.execute(select(CompanionMetadata).where(CompanionMetadata.message_id.in_([m.id for m in messages])))).scalars()) if messages else []
+    metadata = {r.message_id: r.payload for r in metadata_rows}
+    latest_context = next((metadata[m.id].get("context") for m in reversed(messages) if m.id in metadata), None)
     return ConversationOut(
         id=conversation.id,
         title=conversation.title,
         category=conversation.category,
+        context=latest_context,
         messages=[
-            MessageOut(id=message.id, role=message.role, content=message.content) for message in messages
+            MessageOut(id=message.id, role=message.role, content=message.content, metadata=metadata.get(message.id)) for message in messages
         ],
     )
 
@@ -104,6 +108,8 @@ async def chat(
                 )
             )
         ).scalar_one_or_none()
+    if payload.conversation_id and conversation is None:
+        raise HTTPException(404, detail="会话不存在或无权访问")
     if conversation is None:
         conversation = Conversation(
             id=str(uuid.uuid4()),
@@ -135,21 +141,27 @@ async def chat(
         if row.role in {"user", "assistant"}
     ][-12:]
 
+    if context is None:
+        saved = (await db.execute(select(CompanionMetadata).join(Message, Message.id == CompanionMetadata.message_id).where(Message.conversation_id == conversation_id).order_by(Message.id.desc()).limit(1))).scalar_one_or_none()
+        context = saved.payload.get("context") if saved else {}
+    node_id = (context or {}).get("node_id") or (context or {}).get("node")
+    node = (await db.execute(select(LearningNode).where(LearningNode.id == node_id))).scalar_one_or_none() if node_id else None
+
     async def event_stream():
-        collected: list[str] = []
         yield _sse({"conversationId": conversation_id, "title": conversation_title})
         try:
-            async for delta in llm_service.chat_stream(build_messages(history, context)):
-                collected.append(delta)
-                yield _sse({"delta": delta})
-        except Exception as exc:  # 理论上 service 内部已降级，这里兜底
-            yield _sse({"error": "生成回复时出错，请稍后重试", "detail": str(exc)})
-
-        content = "".join(collected) or "（未生成内容）"
+            result = await companion_service.reply(message_text, node, context, history)
+        except Exception:
+            yield _sse({"error": "伴学服务暂不可用，请稍后重试"})
+            return
+        content = result["answer"]
+        yield _sse({"delta": content})
         # 流结束后用独立会话持久化助手回复
         async with SessionLocal() as session:
             message = Message(conversation_id=conversation_id, role="assistant", content=content)
             session.add(message)
+            await session.flush()
+            session.add(CompanionMetadata(message_id=message.id, payload=result["metadata"]))
             stored = (
                 await session.execute(select(Conversation).where(Conversation.id == conversation_id))
             ).scalar_one()
@@ -160,6 +172,7 @@ async def chat(
         yield _sse(
             {
                 "done": True,
+                "metadata": result["metadata"],
                 "messageId": message_id,
                 "conversationId": conversation_id,
                 "title": conversation_title,
@@ -195,8 +208,6 @@ async def explain(
     if node is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="学习节点不存在")
 
-    if not llm_service.enabled:
-        return ExplainResponse(explanation=node.explanation)
-
-    text = await llm_service.chat([{"role": "user", "content": EXPLAIN_PROMPT.format(title=node.title)}])
-    return ExplainResponse(explanation=text.strip() or node.explanation)
+    result = await companion_service.reply("请解释当前知识点", node,
+        {"node_id": node.id, "learner_level": payload.learner_level, "scene": payload.scene}, [])
+    return ExplainResponse(explanation=result["answer"], metadata=result["metadata"])

@@ -127,3 +127,5 @@ desktop.ini
 *.log
 logs/
 docker-compose.override.yml
+# 课程资料通过团队群文件分发
+/backend/data/knowledge.json

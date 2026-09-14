@@ -1,6 +1,18 @@
 import { useAuthStore } from '@/stores/auth-store'
 
+export type CompanionMetadata = {
+  mode: 'generated' | 'model_only' | 'fallback'
+  reason?: string
+  suggestedAction?: string
+  references: { chunkId: string; text: string; sourceDocument: string; locator: string; evidenceKind: string }[]
+  context?: { node?: string; node_id?: string; learner_level?: 'beginner' | 'advanced'; scene?: 'preview' | 'exam_review'; stage?: string; progress?: string }
+}
+
 export type ChatStreamContext = {
+  nodeId?: string
+  learnerLevel?: 'beginner' | 'advanced'
+  scene?: 'preview' | 'exam_review'
+
   node?: string
   stage?: string
   progress?: string
@@ -15,6 +27,7 @@ export type ChatStreamBody = {
 export type ChatStreamHandlers = {
   onDelta: (delta: string) => void
   onDone?: (payload: {
+    metadata?: CompanionMetadata
     messageId: number
     conversationId: string
     title: string
@@ -23,6 +36,7 @@ export type ChatStreamHandlers = {
 }
 
 type StreamEvent = {
+  metadata?: CompanionMetadata
   delta?: string
   done?: boolean
   messageId?: number
@@ -73,6 +87,7 @@ export async function streamChat(
   const reader = response.body.getReader()
   const decoder = new TextDecoder('utf-8')
   let buffer = ''
+  let finished = false
 
   const handleChunk = (chunk: string) => {
     for (const line of chunk.split('\n')) {
@@ -86,9 +101,12 @@ export async function streamChat(
         continue
       }
       if (event.error) {
+        finished = true
         handlers.onError?.(event.error)
       } else if (event.done) {
+        finished = true
         handlers.onDone?.({
+          metadata: event.metadata,
           messageId: event.messageId ?? Date.now(),
           conversationId: event.conversationId ?? '',
           title: event.title ?? '',
@@ -99,6 +117,7 @@ export async function streamChat(
     }
   }
 
+  try {
   for (;;) {
     const { done, value } = await reader.read()
     if (done) break
@@ -113,4 +132,8 @@ export async function streamChat(
 
   buffer += decoder.decode()
   if (buffer.trim()) handleChunk(buffer)
+  if (!finished) handlers.onError?.('回复连接已中断，请重试')
+  } catch {
+    if (!finished) handlers.onError?.('读取回复失败，请重试')
+  } finally { reader.releaseLock() }
 }
