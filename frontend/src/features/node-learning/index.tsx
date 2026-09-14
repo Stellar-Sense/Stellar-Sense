@@ -25,6 +25,7 @@ import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
+import { useCompanionStore } from '@/stores/companion-store'
 import { useExplainNode, useLearningNode, useLearningNodes } from './api'
 import { NodeAssessment } from './assessment'
 
@@ -113,6 +114,25 @@ export function NodeLearning() {
   }, [nodeStatuses, overview, selectedNodeId])
 
   const { data: selectedNode } = useLearningNode(effectiveNodeId)
+  const setCompanionNode = useCompanionStore((state) => state.setNode)
+  const openCompanion = useCompanionStore((state) => state.open)
+
+  useEffect(() => {
+    if (!selectedNode) return
+    setCompanionNode({
+      id: selectedNode.id,
+      name: selectedNode.title,
+      domain: selectedNode.breadcrumb.split(' / ')[0] ?? '遥感学习',
+      progress: selectedNode.progress,
+      description: selectedNode.summary,
+      status:
+        selectedNode.status === 'done'
+          ? 'mastered'
+          : selectedNode.status === 'current'
+            ? 'learning'
+            : 'unlearned',
+    })
+  }, [selectedNode, setCompanionNode])
 
   const groups = useMemo(() => overview?.groups ?? [], [overview])
 
@@ -148,6 +168,7 @@ export function NodeLearning() {
 
   const handleSelectNode = (nodeId: string) => {
     if (isAiReplying) return
+    openCompanion()
     setConversationId(undefined)
     setMessages([])
     setSelectedNodeId(nodeId)
@@ -156,6 +177,7 @@ export function NodeLearning() {
 
   const handlePreviousNode = () => {
     if (isAiReplying) return
+    openCompanion()
     setConversationId(undefined)
     setMessages([])
     const index = sequence.indexOf(selectedNode.id)
@@ -166,6 +188,7 @@ export function NodeLearning() {
 
   const handleNextNode = () => {
     if (isAiReplying) return
+    openCompanion()
     setConversationId(undefined)
     setMessages([])
     const index = sequence.indexOf(selectedNode.id)
