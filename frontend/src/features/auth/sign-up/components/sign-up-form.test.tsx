@@ -1,8 +1,11 @@
+import { renderWithQueryClient } from '@/test-utils/query-client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, type RenderResult } from 'vitest-browser-react'
 import { type Locator, userEvent } from 'vitest/browser'
-import { renderWithQueryClient } from '@/test-utils/query-client'
+import { useLocale } from '@/lib/i18n'
 import { SignUpForm } from './sign-up-form'
+
+beforeEach(() => useLocale.getState().setLocale('en'))
 
 const FORM_MESSAGES = {
   emailEmpty: 'Please enter your email.',
@@ -63,7 +66,7 @@ describe('SignUpForm', () => {
     emailInput = screen.getByRole('textbox', { name: /^Email$/i })
     passwordInput = screen.getByLabelText(/^Password$/i)
     confirmPasswordInput = screen.getByLabelText(/^Confirm Password$/i)
-    submitButton = screen.getByRole('button', { name: /^Create Account$/i })
+    submitButton = screen.getByRole('button', { name: /^Next$/i })
   })
 
   it('renders fields and submit button', async () => {
@@ -104,7 +107,57 @@ describe('SignUpForm', () => {
     await userEvent.fill(confirmPasswordInput, '1234567')
 
     await userEvent.click(submitButton)
-    await expect.element(submitButton).toBeDisabled()
+    expect(mocks.post).not.toHaveBeenCalled()
+    const choose = async (name: string) =>
+      screen.getByRole('button', { name, exact: true }).click()
+    await choose('Geographic information systems')
+    await choose('Next')
+    for (const title of [
+      'Remote sensing foundation',
+      'Python foundation',
+      'Machine learning foundation',
+    ]) {
+      await screen
+        .getByRole('group', { name: title, exact: true })
+        .getByRole('button', { name: 'Know some concepts', exact: true })
+        .click()
+    }
+    await choose('Next')
+    await choose('Build a foundation')
+    await choose('Next')
+    await choose('Remote sensing image processing')
+    await choose('Next')
+    await choose('Explain step by step')
+    await choose('Next')
+    await choose('30 minutes')
+    await choose('Next')
+    expect(mocks.post).not.toHaveBeenCalled()
+    submitButton = screen.getByRole('button', {
+      name: 'Create Account',
+      exact: true,
+    })
+    await userEvent.click(submitButton)
+    await expect
+      .element(screen.getByRole('button', { name: 'Saving…', exact: true }))
+      .toBeDisabled()
+    expect(mocks.post).toHaveBeenCalledWith(
+      '/auth/register',
+      expect.objectContaining({
+        learnerProfile: {
+          version: 1,
+          selections: {
+            backgrounds: ['gis'],
+            remoteSensing: ['concepts'],
+            python: ['concepts'],
+            machineLearning: ['concepts'],
+            goals: ['intro'],
+            interests: ['imagery'],
+            styles: ['steps'],
+            time: ['30'],
+          },
+        },
+      })
+    )
 
     mocks.resolveRegister({
       data: {

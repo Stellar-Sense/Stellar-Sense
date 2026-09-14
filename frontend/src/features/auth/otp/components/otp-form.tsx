@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { toast } from 'sonner'
-import { useVerifyOtp } from '@/features/auth/api'
+import { t, useLocale } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -20,6 +20,7 @@ import {
   InputOTPSlot,
   InputOTPSeparator,
 } from '@/components/ui/input-otp'
+import { useVerifyOtp } from '@/features/auth/api'
 
 const formSchema = z.object({
   otp: z
@@ -31,6 +32,8 @@ const formSchema = z.object({
 type OtpFormProps = React.HTMLAttributes<HTMLFormElement>
 
 export function OtpForm({ className, ...props }: OtpFormProps) {
+  useLocale((state) => state.locale)
+
   const navigate = useNavigate()
   const { email } = useSearch({ from: '/(auth)/otp' })
   const verifyOtp = useVerifyOtp()
@@ -49,7 +52,7 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
       { email, code: data.otp },
       {
         onSuccess: () => {
-          toast.success('验证通过，请使用新密码重新登录')
+          toast.success(t('验证通过，请使用新密码重新登录'))
           navigate({ to: '/sign-in' })
         },
       }
@@ -68,7 +71,9 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
           name='otp'
           render={({ field }) => (
             <FormItem>
-              <FormLabel className='sr-only'>One-Time Password</FormLabel>
+              <FormLabel className='sr-only'>
+                {t('One-Time Password')}
+              </FormLabel>
               <FormControl>
                 <InputOTP
                   maxLength={6}
@@ -96,7 +101,7 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
           )}
         />
         <Button className='mt-2' disabled={otp.length < 6 || isLoading}>
-          Verify
+          {t('Verify')}
         </Button>
       </form>
     </Form>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { t, useLocale } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -18,6 +19,8 @@ export function NodeEditor({
   onSaved: (id?: string) => void
   onCancel: () => void
 }) {
+  useLocale((state) => state.locale)
+
   const [form, setForm] = useState({
     name: node?.name ?? '',
     domain: node?.domain ?? '',
@@ -43,21 +46,21 @@ export function NodeEditor({
           },
           {
             onSuccess: (result) => {
-              toast.success(node ? '节点已更新' : '节点已创建')
+              toast.success(node ? t('节点已更新') : t('节点已创建'))
               onSaved(result.id ?? node?.id)
             },
           }
         )
       }}
     >
-      <h2 className='font-semibold'>{node ? '编辑节点' : '新建节点'}</h2>
+      <h2 className='font-semibold'>{node ? t('编辑节点') : t('新建节点')}</h2>
       {revision !== baseRevision && (
         <p role='alert' className='text-xs text-amber-200'>
-          图谱已更新，请取消并重新打开编辑，核对最新内容后保存。
+          {t('图谱已更新，请取消并重新打开编辑，核对最新内容后保存。')}
         </p>
       )}
       <label className='block text-sm'>
-        节点名称
+        {t('节点名称')}
         <Input
           required
           maxLength={128}
@@ -67,7 +70,7 @@ export function NodeEditor({
         />
       </label>
       <label className='block text-sm'>
-        所属领域
+        {t('所属领域')}
         <Input
           required
           maxLength={64}
@@ -78,7 +81,7 @@ export function NodeEditor({
       </label>
       <div className='grid grid-cols-2 gap-3'>
         <label className='text-sm'>
-          节点类型
+          {t('节点类型')}
           <select
             className={selectClass}
             value={form.kind}
@@ -86,13 +89,13 @@ export function NodeEditor({
           >
             {Object.entries(kindLabels).map(([key, label]) => (
               <option key={key} value={key}>
-                {label}
+                {t(label)}
               </option>
             ))}
           </select>
         </label>
         <label className='text-sm'>
-          默认难度
+          {t('默认难度')}
           <select
             className={selectClass}
             value={form.difficulty}
@@ -100,14 +103,14 @@ export function NodeEditor({
               setForm({ ...form, difficulty: Number(e.target.value) })
             }
           >
-            <option value={1}>基础</option>
-            <option value={2}>分步</option>
-            <option value={3}>综合</option>
+            <option value={1}>{t('基础')}</option>
+            <option value={2}>{t('分步')}</option>
+            <option value={3}>{t('综合')}</option>
           </select>
         </label>
       </div>
       <label className='block text-sm'>
-        预计学习时间（分钟）
+        {t('预计学习时间（分钟）')}
         <Input
           required
           type='number'
@@ -120,7 +123,7 @@ export function NodeEditor({
         />
       </label>
       <label className='block text-sm'>
-        知识说明
+        {t('知识说明')}
         <Textarea
           maxLength={20000}
           rows={5}
@@ -132,7 +135,9 @@ export function NodeEditor({
       <div className='grid grid-cols-2 gap-3'>
         {(['x', 'y'] as const).map((axis) => (
           <label key={axis} className='text-sm'>
-            星图 {axis.toUpperCase()} 坐标（0–100）
+            {t('星图')}
+            {axis.toUpperCase()}
+            {t('坐标（0–100）')}
             <Input
               required
               type='number'
@@ -149,10 +154,10 @@ export function NodeEditor({
       </div>
       <div className='flex gap-2'>
         <Button disabled={mutation.isPending} type='submit'>
-          保存节点
+          {t('保存节点')}
         </Button>
         <Button type='button' variant='ghost' onClick={onCancel}>
-          取消
+          {t('取消')}
         </Button>
       </div>
     </form>
@@ -166,6 +171,8 @@ export function TaskEditor({
   nodeId: string
   revision: number
 }) {
+  useLocale((state) => state.locale)
+
   const tasks = useManagedTasks(nodeId)
   const mutation = useGraphMutation()
   const [form, setForm] = useState({
@@ -183,11 +190,13 @@ export function TaskEditor({
   const [removing, setRemoving] = useState<string | null>(null)
   return (
     <section className={`${panelClass} space-y-4`}>
-      <h2 className='font-semibold'>学习评价任务</h2>
+      <h2 className='font-semibold'>{t('学习评价任务')}</h2>
       <p className='text-xs leading-5 text-slate-400'>
-        每个知识点至少配置两道不同题目，以便确认掌握。客观题由服务器判分；主观题根据量规与资料调用真实模型。
+        {t(
+          '每个知识点至少配置两道不同题目，以便确认掌握。客观题由服务器判分；主观题根据量规与资料调用真实模型。'
+        )}
       </p>
-      {tasks.isError && <p role='alert'>任务加载失败。</p>}
+      {tasks.isError && <p role='alert'>{t('任务加载失败。')}</p>}
       {tasks.data?.map((task) => (
         <div
           key={task.id}
@@ -196,8 +205,8 @@ export function TaskEditor({
           <p>
             {task.title}{' '}
             <span className='text-xs text-slate-400'>
-              · {task.kind === 'quiz' ? '客观题' : '主观题'} · 难度{' '}
-              {task.difficulty}
+              · {task.kind === 'quiz' ? t('客观题') : t('主观题')}
+              {t('· 难度')} {task.difficulty}
             </span>
           </p>
           <p className='my-2 text-xs text-slate-400'>{task.prompt}</p>
@@ -218,14 +227,14 @@ export function TaskEditor({
                   )
                 }
               >
-                确认移除
+                {t('确认移除')}
               </Button>
               <Button
                 size='sm'
                 variant='ghost'
                 onClick={() => setRemoving(null)}
               >
-                取消
+                {t('取消')}
               </Button>
             </div>
           ) : (
@@ -234,7 +243,7 @@ export function TaskEditor({
               variant='ghost'
               onClick={() => setRemoving(task.id)}
             >
-              移除任务
+              {t('移除任务')}
             </Button>
           )}
         </div>
@@ -258,7 +267,7 @@ export function TaskEditor({
             },
             {
               onSuccess: () => {
-                toast.success('评价任务已添加')
+                toast.success(t('评价任务已添加'))
                 setForm({ ...form, title: '', prompt: '', options: '' })
               },
             }
@@ -266,7 +275,7 @@ export function TaskEditor({
         }}
       >
         <label className='block text-sm'>
-          任务标题
+          {t('任务标题')}
           <Input
             required
             maxLength={128}
@@ -276,18 +285,18 @@ export function TaskEditor({
         </label>
         <div className='grid grid-cols-3 gap-2'>
           <label className='text-xs'>
-            类型
+            {t('类型')}
             <select
               className={selectClass}
               value={form.kind}
               onChange={(e) => setForm({ ...form, kind: e.target.value })}
             >
-              <option value='quiz'>客观题</option>
-              <option value='explanation'>主观题</option>
+              <option value='quiz'>{t('客观题')}</option>
+              <option value='explanation'>{t('主观题')}</option>
             </select>
           </label>
           <label className='text-xs'>
-            难度
+            {t('难度')}
             <select
               className={selectClass}
               value={form.difficulty}
@@ -295,13 +304,13 @@ export function TaskEditor({
                 setForm({ ...form, difficulty: Number(e.target.value) })
               }
             >
-              <option value={1}>基础</option>
-              <option value={2}>分步</option>
-              <option value={3}>综合</option>
+              <option value={1}>{t('基础')}</option>
+              <option value={2}>{t('分步')}</option>
+              <option value={3}>{t('综合')}</option>
             </select>
           </label>
           <label className='text-xs'>
-            分钟
+            {t('分钟')}
             <Input
               type='number'
               required
@@ -315,7 +324,7 @@ export function TaskEditor({
           </label>
         </div>
         <label className='block text-sm'>
-          题目
+          {t('题目')}
           <Textarea
             required
             value={form.prompt}
@@ -325,7 +334,7 @@ export function TaskEditor({
         {form.kind === 'quiz' && (
           <>
             <label className='block text-sm'>
-              选项（每行一个，2–8 项）
+              {t('选项（每行一个，2–8 项）')}
               <Textarea
                 required
                 value={form.options}
@@ -333,7 +342,7 @@ export function TaskEditor({
               />
             </label>
             <label className='block text-sm'>
-              正确选项
+              {t('正确选项')}
               <Input
                 type='number'
                 required
@@ -348,7 +357,7 @@ export function TaskEditor({
           </>
         )}
         <label className='block text-sm'>
-          参考答案与专业依据
+          {t('参考答案与专业依据')}
           <Textarea
             required
             value={form.reference}
@@ -356,7 +365,7 @@ export function TaskEditor({
           />
         </label>
         <label className='block text-sm'>
-          资料来源及章节／链接
+          {t('资料来源及章节／链接')}
           <Input
             required
             value={form.source}
@@ -365,7 +374,7 @@ export function TaskEditor({
         </label>
         {form.kind === 'explanation' && (
           <label className='block text-sm'>
-            评分量规
+            {t('评分量规')}
             <Textarea
               required
               value={form.rubric}
@@ -374,7 +383,7 @@ export function TaskEditor({
           </label>
         )}
         <Button type='submit' disabled={mutation.isPending}>
-          添加评价任务
+          {t('添加评价任务')}
         </Button>
       </form>
     </section>

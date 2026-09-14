@@ -1,13 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, type RenderResult } from 'vitest-browser-react'
 import { userEvent } from 'vitest/browser'
+import { useLocale } from '@/lib/i18n'
 import { SearchProvider } from '@/context/search-provider'
+
+beforeEach(() => useLocale.getState().setLocale('en'))
 
 const COMMAND_MENU_PLACEHOLDER = 'Type a command or search...'
 
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
-  setTheme: vi.fn(),
 }))
 
 vi.mock('@tanstack/react-router', async (importOriginal) => {
@@ -17,10 +19,6 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
     useNavigate: () => mocks.navigate,
   }
 })
-
-vi.mock('@/context/theme-provider', () => ({
-  useTheme: () => ({ setTheme: mocks.setTheme }),
-}))
 
 type ShortcutModifier = 'Control' | 'Meta'
 
@@ -69,11 +67,7 @@ describe('SearchProvider and CommandMenu', () => {
     await expect
       .element(getByPlaceholder(COMMAND_MENU_PLACEHOLDER))
       .toBeInTheDocument()
-    await expect.element(getByText('Theme')).toBeInTheDocument()
-    await expect.element(getByText('Light')).toBeInTheDocument()
-    await expect.element(getByText('Dark')).toBeInTheDocument()
-    await expect.element(getByText('System')).toBeInTheDocument()
-    await expect.element(getByText('学习驾驶舱')).toBeInTheDocument()
+    await expect.element(getByText('Learning dashboard')).toBeInTheDocument()
   })
 
   it('does not show the dialog content when search is closed', async () => {
@@ -109,7 +103,11 @@ describe('SearchProvider and CommandMenu', () => {
 
     await openCommandPalette(screen)
 
-    await userEvent.click(screen.getByText('学科星图'))
+    await userEvent.fill(
+      screen.getByPlaceholder(COMMAND_MENU_PLACEHOLDER),
+      'Knowledge map'
+    )
+    await userEvent.click(screen.getByText('Knowledge map'))
 
     expect(mocks.navigate).toHaveBeenCalledWith({ to: '/tasks' })
     await expect
@@ -123,7 +121,7 @@ describe('SearchProvider and CommandMenu', () => {
 
     await openCommandPalette(screen)
 
-    await userEvent.click(getByText('路径规划'))
+    await userEvent.click(getByText('Path planning'))
 
     expect(mocks.navigate).toHaveBeenCalledWith({ to: '/path-planning' })
     await expect
@@ -131,17 +129,14 @@ describe('SearchProvider and CommandMenu', () => {
       .not.toBeInTheDocument()
   })
 
-  it('applies theme and closes the palette when a theme command is chosen', async () => {
+  it('does not offer theme switching commands', async () => {
     const screen = await renderWithSearchProvider()
-
     await openCommandPalette(screen)
-
-    await userEvent.click(screen.getByText('Dark'))
-
-    expect(mocks.setTheme).toHaveBeenCalledWith('dark')
-    await expect
-      .element(screen.getByPlaceholder(COMMAND_MENU_PLACEHOLDER))
-      .not.toBeInTheDocument()
+    for (const name of ['Light', 'Dark', 'System']) {
+      await expect
+        .element(screen.getByRole('option', { name, exact: true }))
+        .not.toBeInTheDocument()
+    }
   })
 
   it('shows empty state when the filter matches nothing', async () => {

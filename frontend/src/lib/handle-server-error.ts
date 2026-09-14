@@ -1,5 +1,6 @@
 import { AxiosError } from 'axios'
 import { toast } from 'sonner'
+import { t } from '@/lib/i18n'
 
 export function handleServerError(error: unknown) {
   if (import.meta.env.DEV) {
@@ -25,5 +26,5 @@ export function handleServerError(error: unknown) {
     }
   }
 
-  toast.error(errMsg)
+  toast.error(t(errMsg))
 }

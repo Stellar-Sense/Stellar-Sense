@@ -8,13 +8,10 @@ import { IconLayoutFull } from '@/assets/custom/icon-layout-full'
 import { IconSidebarFloating } from '@/assets/custom/icon-sidebar-floating'
 import { IconSidebarInset } from '@/assets/custom/icon-sidebar-inset'
 import { IconSidebarSidebar } from '@/assets/custom/icon-sidebar-sidebar'
-import { IconThemeDark } from '@/assets/custom/icon-theme-dark'
-import { IconThemeLight } from '@/assets/custom/icon-theme-light'
-import { IconThemeSystem } from '@/assets/custom/icon-theme-system'
+import { t, useLocale } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { useDirection } from '@/context/direction-provider'
 import { type Collapsible, useLayout } from '@/context/layout-provider'
-import { useTheme } from '@/context/theme-provider'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -28,15 +25,15 @@ import {
 import { useSidebar } from './ui/sidebar'
 
 export function ConfigDrawer() {
+  useLocale((state) => state.locale)
+
   const { setOpen } = useSidebar()
   const { resetDir } = useDirection()
-  const { resetTheme } = useTheme()
   const { resetLayout } = useLayout()
 
   const handleReset = () => {
     setOpen(true)
     resetDir()
-    resetTheme()
     resetLayout()
   }
 
@@ -46,7 +43,7 @@ export function ConfigDrawer() {
         <Button
           size='icon'
           variant='ghost'
-          aria-label='Open theme settings'
+          aria-label={t('Open layout settings')}
           className='rounded-full'
         >
           <Settings aria-hidden='true' />
@@ -54,13 +51,12 @@ export function ConfigDrawer() {
       </SheetTrigger>
       <SheetContent className='flex flex-col'>
         <SheetHeader className='pb-0 text-start'>
-          <SheetTitle>Theme Settings</SheetTitle>
+          <SheetTitle>{t('Layout Settings')}</SheetTitle>
           <SheetDescription>
-            Adjust the appearance and layout to suit your preferences.
+            {t('Adjust the appearance and layout to suit your preferences.')}
           </SheetDescription>
         </SheetHeader>
         <div className='space-y-6 overflow-y-auto px-4'>
-          <ThemeConfig />
           <SidebarConfig />
           <LayoutConfig />
           <DirConfig />
@@ -69,9 +65,9 @@ export function ConfigDrawer() {
           <Button
             variant='destructive'
             onClick={handleReset}
-            aria-label='Reset all settings to default values'
+            aria-label={t('Reset all settings to default values')}
           >
-            Reset
+            {t('Reset')}
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -119,20 +115,20 @@ function SectionTitle({
 
 function RadioGroupItem({
   item,
-  isTheme = false,
 }: {
   item: {
     value: string
     label: string
     icon: (props: SVGProps<SVGSVGElement>) => React.ReactElement
   }
-  isTheme?: boolean
 }) {
+  useLocale((state) => state.locale)
+
   return (
     <Item
       value={item.value}
       className={cn('group outline-none', 'transition duration-200 ease-in')}
-      aria-label={`Select ${item.label.toLowerCase()}`}
+      aria-label={t('Select {0}', t(item.label))}
       aria-describedby={`${item.value}-description`}
     >
       <div
@@ -143,7 +139,7 @@ function RadioGroupItem({
         )}
         role='img'
         aria-hidden='false'
-        aria-label={`${item.label} option preview`}
+        aria-label={t('{0} option preview', t(item.label))}
       >
         <CircleCheck
           className={cn(
@@ -155,8 +151,7 @@ function RadioGroupItem({
         />
         <item.icon
           className={cn(
-            !isTheme &&
-              'fill-primary stroke-primary group-data-[state=unchecked]:fill-muted-foreground group-data-[state=unchecked]:stroke-muted-foreground'
+            'fill-primary stroke-primary group-data-[state=unchecked]:fill-muted-foreground group-data-[state=unchecked]:stroke-muted-foreground'
           )}
           aria-hidden='true'
         />
@@ -166,71 +161,29 @@ function RadioGroupItem({
         id={`${item.value}-description`}
         aria-live='polite'
       >
-        {item.label}
+        {t(item.label)}
       </div>
     </Item>
   )
 }
 
-function ThemeConfig() {
-  const { defaultTheme, theme, setTheme } = useTheme()
-  return (
-    <div>
-      <SectionTitle
-        title='Theme'
-        showReset={theme !== defaultTheme}
-        onReset={() => setTheme(defaultTheme)}
-        resetAriaLabel='Reset theme preference to default'
-      />
-      <Radio
-        value={theme}
-        onValueChange={setTheme}
-        className='grid w-full max-w-md grid-cols-3 gap-4'
-        aria-label='Select theme preference'
-        aria-describedby='theme-description'
-      >
-        {[
-          {
-            value: 'system',
-            label: 'System',
-            icon: IconThemeSystem,
-          },
-          {
-            value: 'light',
-            label: 'Light',
-            icon: IconThemeLight,
-          },
-          {
-            value: 'dark',
-            label: 'Dark',
-            icon: IconThemeDark,
-          },
-        ].map((item) => (
-          <RadioGroupItem key={item.value} item={item} isTheme />
-        ))}
-      </Radio>
-      <div id='theme-description' className='sr-only'>
-        Choose between system preference, light mode, or dark mode
-      </div>
-    </div>
-  )
-}
-
 function SidebarConfig() {
+  useLocale((state) => state.locale)
+
   const { defaultVariant, variant, setVariant } = useLayout()
   return (
     <div className='max-md:hidden'>
       <SectionTitle
-        title='Sidebar'
+        title={t('Sidebar')}
         showReset={defaultVariant !== variant}
         onReset={() => setVariant(defaultVariant)}
-        resetAriaLabel='Reset sidebar style to default'
+        resetAriaLabel={t('Reset sidebar style to default')}
       />
       <Radio
         value={variant}
         onValueChange={setVariant}
         className='grid w-full max-w-md grid-cols-3 gap-4'
-        aria-label='Select sidebar style'
+        aria-label={t('Select sidebar style')}
         aria-describedby='sidebar-description'
       >
         {[
@@ -254,13 +207,15 @@ function SidebarConfig() {
         ))}
       </Radio>
       <div id='sidebar-description' className='sr-only'>
-        Choose between inset, floating, or standard sidebar layout
+        {t('Choose between inset, floating, or standard sidebar layout')}
       </div>
     </div>
   )
 }
 
 function LayoutConfig() {
+  useLocale((state) => state.locale)
+
   const { open, setOpen } = useSidebar()
   const { defaultCollapsible, collapsible, setCollapsible } = useLayout()
 
@@ -269,13 +224,13 @@ function LayoutConfig() {
   return (
     <div className='max-md:hidden'>
       <SectionTitle
-        title='Layout'
+        title={t('Layout')}
         showReset={radioState !== 'default'}
         onReset={() => {
           setOpen(true)
           setCollapsible(defaultCollapsible)
         }}
-        resetAriaLabel='Reset layout options to default'
+        resetAriaLabel={t('Reset layout options to default')}
       />
       <Radio
         value={radioState}
@@ -288,7 +243,7 @@ function LayoutConfig() {
           setCollapsible(v as Collapsible)
         }}
         className='grid w-full max-w-md grid-cols-3 gap-4'
-        aria-label='Select layout style'
+        aria-label={t('Select layout style')}
         aria-describedby='layout-description'
       >
         {[
@@ -312,27 +267,31 @@ function LayoutConfig() {
         ))}
       </Radio>
       <div id='layout-description' className='sr-only'>
-        Choose between default expanded, compact icon-only, or full layout mode
+        {t(
+          'Choose between default expanded, compact icon-only, or full layout mode'
+        )}
       </div>
     </div>
   )
 }
 
 function DirConfig() {
+  useLocale((state) => state.locale)
+
   const { defaultDir, dir, setDir } = useDirection()
   return (
     <div>
       <SectionTitle
-        title='Direction'
+        title={t('Direction')}
         showReset={defaultDir !== dir}
         onReset={() => setDir(defaultDir)}
-        resetAriaLabel='Reset text direction to default'
+        resetAriaLabel={t('Reset text direction to default')}
       />
       <Radio
         value={dir}
         onValueChange={setDir}
         className='grid w-full max-w-md grid-cols-3 gap-4'
-        aria-label='Select site direction'
+        aria-label={t('Select site direction')}
         aria-describedby='direction-description'
       >
         {[
@@ -355,7 +314,7 @@ function DirConfig() {
         ))}
       </Radio>
       <div id='direction-description' className='sr-only'>
-        Choose between left-to-right or right-to-left site direction
+        {t('Choose between left-to-right or right-to-left site direction')}
       </div>
     </div>
   )

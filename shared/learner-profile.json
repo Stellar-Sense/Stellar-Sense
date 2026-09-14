@@ -1,0 +1,365 @@
+{
+  "version": 1,
+  "groups": [
+    {
+      "id": "backgrounds",
+      "title": "专业背景",
+      "en": "Background",
+      "prompt": "你主要接触过哪些领域？",
+      "promptEn": "Which fields have you explored?",
+      "max": 2,
+      "exclusive": "none",
+      "options": [
+        {
+          "id": "remote-sensing",
+          "label": "遥感科学",
+          "en": "Remote sensing"
+        },
+        {
+          "id": "gis",
+          "label": "地理信息 GIS",
+          "en": "Geographic information systems"
+        },
+        {
+          "id": "surveying",
+          "label": "测绘工程",
+          "en": "Surveying and mapping"
+        },
+        {
+          "id": "computing",
+          "label": "计算机与人工智能",
+          "en": "Computing and AI"
+        },
+        {
+          "id": "environment",
+          "label": "地理与环境",
+          "en": "Geography and environment"
+        },
+        {
+          "id": "agriculture",
+          "label": "农业与资源",
+          "en": "Agriculture and resources"
+        },
+        {
+          "id": "other",
+          "label": "其他专业",
+          "en": "Other fields"
+        },
+        {
+          "id": "none",
+          "label": "暂时没有相关背景",
+          "en": "No related background yet"
+        }
+      ]
+    },
+    {
+      "id": "remoteSensing",
+      "title": "遥感基础",
+      "en": "Remote sensing foundation",
+      "prompt": "你对这些内容熟悉吗？",
+      "promptEn": "How familiar are you with these topics?",
+      "max": 1,
+      "exclusive": null,
+      "options": [
+        {
+          "id": "none",
+          "label": "未接触过",
+          "en": "No experience"
+        },
+        {
+          "id": "concepts",
+          "label": "了解一些概念",
+          "en": "Know some concepts"
+        },
+        {
+          "id": "practice",
+          "label": "做过基础练习",
+          "en": "Completed basic exercises"
+        },
+        {
+          "id": "projects",
+          "label": "能独立完成项目",
+          "en": "Can complete projects independently"
+        },
+        {
+          "id": "unsure",
+          "label": "不确定",
+          "en": "Not sure"
+        }
+      ]
+    },
+    {
+      "id": "python",
+      "title": "Python 基础",
+      "en": "Python foundation",
+      "prompt": "你对这些内容熟悉吗？",
+      "promptEn": "How familiar are you with these topics?",
+      "max": 1,
+      "exclusive": null,
+      "options": [
+        {
+          "id": "none",
+          "label": "未接触过",
+          "en": "No experience"
+        },
+        {
+          "id": "concepts",
+          "label": "了解一些概念",
+          "en": "Know some concepts"
+        },
+        {
+          "id": "practice",
+          "label": "做过基础练习",
+          "en": "Completed basic exercises"
+        },
+        {
+          "id": "projects",
+          "label": "能独立完成项目",
+          "en": "Can complete projects independently"
+        },
+        {
+          "id": "unsure",
+          "label": "不确定",
+          "en": "Not sure"
+        }
+      ]
+    },
+    {
+      "id": "machineLearning",
+      "title": "机器学习基础",
+      "en": "Machine learning foundation",
+      "prompt": "你对这些内容熟悉吗？",
+      "promptEn": "How familiar are you with these topics?",
+      "max": 1,
+      "exclusive": null,
+      "options": [
+        {
+          "id": "none",
+          "label": "未接触过",
+          "en": "No experience"
+        },
+        {
+          "id": "concepts",
+          "label": "了解一些概念",
+          "en": "Know some concepts"
+        },
+        {
+          "id": "practice",
+          "label": "做过基础练习",
+          "en": "Completed basic exercises"
+        },
+        {
+          "id": "projects",
+          "label": "能独立完成项目",
+          "en": "Can complete projects independently"
+        },
+        {
+          "id": "unsure",
+          "label": "不确定",
+          "en": "Not sure"
+        }
+      ]
+    },
+    {
+      "id": "goals",
+      "title": "学习目的",
+      "en": "Learning goals",
+      "prompt": "你现在主要想完成什么？",
+      "promptEn": "What would you like to achieve?",
+      "max": 2,
+      "exclusive": null,
+      "options": [
+        {
+          "id": "intro",
+          "label": "系统入门",
+          "en": "Build a foundation"
+        },
+        {
+          "id": "course",
+          "label": "配合课程学习",
+          "en": "Support coursework"
+        },
+        {
+          "id": "exam",
+          "label": "准备考试",
+          "en": "Prepare for exams"
+        },
+        {
+          "id": "project",
+          "label": "完成课程设计或竞赛",
+          "en": "Complete a course project or competition"
+        },
+        {
+          "id": "research",
+          "label": "开展科研",
+          "en": "Conduct research"
+        },
+        {
+          "id": "work",
+          "label": "解决实际工作问题",
+          "en": "Solve problems at work"
+        },
+        {
+          "id": "explore",
+          "label": "探索兴趣",
+          "en": "Explore my interests"
+        }
+      ]
+    },
+    {
+      "id": "interests",
+      "title": "兴趣方向",
+      "en": "Interests",
+      "prompt": "你最想深入哪些内容？",
+      "promptEn": "What would you like to explore further?",
+      "max": 3,
+      "exclusive": "unsure",
+      "options": [
+        {
+          "id": "remote-sensing",
+          "label": "遥感基础",
+          "en": "Remote sensing fundamentals"
+        },
+        {
+          "id": "python",
+          "label": "Python 数据处理",
+          "en": "Python data processing"
+        },
+        {
+          "id": "imagery",
+          "label": "遥感影像处理",
+          "en": "Remote sensing image processing"
+        },
+        {
+          "id": "deep-learning",
+          "label": "深度学习",
+          "en": "Deep learning"
+        },
+        {
+          "id": "transformer",
+          "label": "Transformer",
+          "en": "Transformer"
+        },
+        {
+          "id": "foundation-models",
+          "label": "遥感大模型",
+          "en": "Remote sensing foundation models"
+        },
+        {
+          "id": "unsure",
+          "label": "还没想好",
+          "en": "Not decided yet"
+        }
+      ]
+    },
+    {
+      "id": "styles",
+      "title": "讲解偏好",
+      "en": "Guidance preferences",
+      "prompt": "你希望系统怎样帮助你？",
+      "promptEn": "How would you like us to help?",
+      "max": 2,
+      "exclusive": "unsure",
+      "options": [
+        {
+          "id": "examples",
+          "label": "先用通俗例子解释",
+          "en": "Start with everyday examples"
+        },
+        {
+          "id": "steps",
+          "label": "逐步拆解知识",
+          "en": "Explain step by step"
+        },
+        {
+          "id": "visuals",
+          "label": "结合图示理解",
+          "en": "Use diagrams when helpful"
+        },
+        {
+          "id": "code",
+          "label": "结合代码实践",
+          "en": "Use practical code examples"
+        },
+        {
+          "id": "theory",
+          "label": "深入公式原理",
+          "en": "Explore formulas and theory"
+        },
+        {
+          "id": "questions",
+          "label": "通过提问和练习巩固",
+          "en": "Reinforce with questions and exercises"
+        },
+        {
+          "id": "unsure",
+          "label": "暂时没有偏好",
+          "en": "No preference yet"
+        }
+      ]
+    },
+    {
+      "id": "time",
+      "title": "学习时间",
+      "en": "Study time",
+      "prompt": "你每天大约能投入多久？",
+      "promptEn": "How much time can you study each day?",
+      "max": 1,
+      "exclusive": null,
+      "options": [
+        {
+          "id": "15",
+          "label": "15 分钟",
+          "en": "15 minutes"
+        },
+        {
+          "id": "30",
+          "label": "30 分钟",
+          "en": "30 minutes"
+        },
+        {
+          "id": "45",
+          "label": "45 分钟",
+          "en": "45 minutes"
+        },
+        {
+          "id": "60",
+          "label": "60 分钟",
+          "en": "60 minutes"
+        },
+        {
+          "id": "90",
+          "label": "90 分钟",
+          "en": "90 minutes"
+        },
+        {
+          "id": "unsure",
+          "label": "暂不确定",
+          "en": "Not sure yet"
+        }
+      ]
+    }
+  ],
+  "steps": [
+    [
+      "backgrounds"
+    ],
+    [
+      "remoteSensing",
+      "python",
+      "machineLearning"
+    ],
+    [
+      "goals"
+    ],
+    [
+      "interests"
+    ],
+    [
+      "styles"
+    ],
+    [
+      "time"
+    ]
+  ]
+}

@@ -28,7 +28,9 @@ export function Header({ className, fixed, children, ...props }: HeaderProps) {
       className={cn(
         'z-50 h-16 border-b border-white/10 bg-[#0b1020]/75 backdrop-blur-xl',
         fixed && 'header-fixed peer/header sticky top-0 w-[inherit]',
-        offset > 10 && fixed ? 'shadow-[0_10px_30px_rgba(2,6,23,0.35)]' : 'shadow-none',
+        offset > 10 && fixed
+          ? 'shadow-[0_10px_30px_rgba(2,6,23,0.35)]'
+          : 'shadow-none',
         className
       )}
       {...props}

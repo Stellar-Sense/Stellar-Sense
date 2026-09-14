@@ -1,11 +1,11 @@
+import { useState } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
 import { Loader2, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
-import { IconFacebook, IconGithub } from '@/assets/brand-icons'
-import { useRegister } from '@/features/auth/api'
+import { t, useLocale } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,6 +18,12 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/password-input'
+import { useRegister } from '@/features/auth/api'
+import {
+  emptyProfile,
+  completeProfile,
+} from '@/features/learner-profile/catalog'
+import { ProfileWizard } from '@/features/learner-profile/profile-picker'
 
 const formSchema = z
   .object({
@@ -40,9 +46,13 @@ export function SignUpForm({
   className,
   ...props
 }: React.HTMLAttributes<HTMLFormElement>) {
+  useLocale((state) => state.locale)
+
   const register = useRegister()
   const isLoading = register.isPending
   const navigate = useNavigate()
+  const [choosing, setChoosing] = useState(false)
+  const [profile, setProfile] = useState(emptyProfile)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -54,11 +64,12 @@ export function SignUpForm({
   })
 
   function onSubmit(data: z.infer<typeof formSchema>) {
+    if (!completeProfile(profile)) return
     register.mutate(
-      { email: data.email, password: data.password },
+      { email: data.email, password: data.password, learnerProfile: profile },
       {
         onSuccess: (result) => {
-          toast.success(`账号创建成功：${result.email}`)
+          toast.success(t('账号创建成功：{0}', result.email))
           navigate({ to: '/', replace: true })
         },
       }
@@ -68,83 +79,75 @@ export function SignUpForm({
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={(event) => {
+          event.preventDefault()
+          if (!choosing) void form.handleSubmit(() => setChoosing(true))(event)
+        }}
         className={cn('grid gap-3', className)}
         {...props}
       >
-        <FormField
-          control={form.control}
-          name='email'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input placeholder='name@example.com' {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name='password'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Password</FormLabel>
-              <FormControl>
-                <PasswordInput placeholder='********' {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name='confirmPassword'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Confirm Password</FormLabel>
-              <FormControl>
-                <PasswordInput placeholder='********' {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button className='mt-2' disabled={isLoading}>
-          {isLoading ? <Loader2 className='animate-spin' /> : <UserPlus />}
-          Create Account
-        </Button>
-
-        <div className='relative my-2'>
-          <div className='absolute inset-0 flex items-center'>
-            <span className='w-full border-t' />
-          </div>
-          <div className='relative flex justify-center text-xs uppercase'>
-            <span className='bg-background px-2 text-muted-foreground'>
-              Or continue with
-            </span>
-          </div>
-        </div>
-
-        <div className='grid grid-cols-2 gap-2'>
-          <Button
-            variant='outline'
-            className='w-full'
-            type='button'
-            disabled={isLoading}
-          >
-            <IconGithub className='h-4 w-4' /> GitHub
-          </Button>
-          <Button
-            variant='outline'
-            className='w-full'
-            type='button'
-            disabled={isLoading}
-          >
-            <IconFacebook className='h-4 w-4' /> Facebook
-          </Button>
-        </div>
+        {!choosing && (
+          <>
+            <FormField
+              control={form.control}
+              name='email'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Email')}</FormLabel>
+                  <FormControl>
+                    <Input placeholder='name@example.com' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='password'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Password')}</FormLabel>
+                  <FormControl>
+                    <PasswordInput placeholder='********' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='confirmPassword'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Confirm Password')}</FormLabel>
+                  <FormControl>
+                    <PasswordInput placeholder='********' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button className='mt-2' disabled={isLoading}>
+              {isLoading ? <Loader2 className='animate-spin' /> : <UserPlus />}
+              {t('下一步')}
+            </Button>
+          </>
+        )}
+        {choosing && (
+          <ProfileWizard
+            value={profile}
+            onChange={setProfile}
+            onBack={() => setChoosing(false)}
+            onComplete={() => onSubmit(form.getValues())}
+            pending={isLoading}
+            submitLabel={t('Create Account')}
+          />
+        )}
+        {register.isError && (
+          <p role='alert' className='text-sm text-destructive'>
+            {t('注册未完成，请检查邮箱或网络后重试。已保留你的标签选择。')}
+          </p>
+        )}
       </form>
     </Form>
   )

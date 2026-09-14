@@ -1,6 +1,9 @@
 import { AxiosError } from 'axios'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { useLocale } from '@/lib/i18n'
 import { handleServerError } from './handle-server-error'
+
+beforeEach(() => useLocale.getState().setLocale('en'))
 
 const toastError = vi.hoisted(() => vi.fn())
 

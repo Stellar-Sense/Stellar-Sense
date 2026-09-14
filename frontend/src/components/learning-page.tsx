@@ -3,7 +3,6 @@ import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
-import { ThemeSwitch } from '@/components/theme-switch'
 
 export const panelClass =
   'rounded-2xl border border-white/10 bg-slate-950/65 p-5'
@@ -24,7 +23,7 @@ export function LearningPage({
     <>
       <Header>
         <Search className='me-auto' />
-        <ThemeSwitch />
+
         <ProfileDropdown />
       </Header>
       <Main className='space-y-6 text-slate-100'>

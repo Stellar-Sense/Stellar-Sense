@@ -1,23 +1,97 @@
 """设置页接口：个人资料 / 账号 / 通知偏好。"""
 
-from fastapi import APIRouter, Depends
+from base64 import b64encode
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
 
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import User, UserAccount, UserPreference, UserProfile
+from app.models import User, UserAccount, UserAvatar, UserPreference, UserProfile
+from app.models.user import LearnerProfile
+from app.schemas.learner_profile import LearnerProfileOut, LearnerProfileWrite
 from app.schemas.user import (
     AccountOut,
     AccountUpdate,
+    AvatarOut,
     PreferencesOut,
     PreferencesUpdate,
     ProfileOut,
     ProfileUpdate,
     UrlItemOut,
 )
+from app.services.avatar import MAX_AVATAR_BYTES, normalize_avatar
+from app.services.learner_profile import profile_for
 
 router = APIRouter()
+
+
+@router.get("/learner-profile", response_model=LearnerProfileOut)
+async def get_learner_profile(
+    user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+) -> LearnerProfileOut:
+    return LearnerProfileOut(profile=await profile_for(db, user.id))
+
+
+@router.put("/learner-profile", response_model=LearnerProfileOut)
+async def update_learner_profile(
+    payload: LearnerProfileWrite,
+    user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+) -> LearnerProfileOut:
+    await db.execute(select(User).where(User.id == user.id).with_for_update())
+    row = await db.get(LearnerProfile, user.id)
+    if row is None:
+        db.add(LearnerProfile(user_id=user.id, payload=payload.model_dump()))
+    else:
+        row.payload = payload.model_dump()
+    await db.commit()
+    return LearnerProfileOut(profile=payload)
+
+
+def _avatar_out(avatar: UserAvatar | None) -> AvatarOut:
+    if avatar is None:
+        return AvatarOut()
+    return AvatarOut(data_url="data:image/png;base64," + b64encode(avatar.image).decode("ascii"))
+
+
+@router.get("/avatar", response_model=AvatarOut)
+async def get_avatar(
+    user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+) -> AvatarOut:
+    return _avatar_out(await db.get(UserAvatar, user.id))
+
+
+@router.put("/avatar", response_model=AvatarOut)
+async def update_avatar(
+    request: Request, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+) -> AvatarOut:
+    content = bytearray()
+    async for chunk in request.stream():
+        if len(content) + len(chunk) > MAX_AVATAR_BYTES:
+            raise HTTPException(status_code=413, detail="头像图片不能超过 2 MB")
+        content.extend(chunk)
+    image = await run_in_threadpool(normalize_avatar, bytes(content))
+    avatar = await db.get(UserAvatar, user.id)
+    if avatar is None:
+        avatar = UserAvatar(user_id=user.id, image=image)
+        db.add(avatar)
+    else:
+        avatar.image = image
+    await db.commit()
+    return _avatar_out(avatar)
+
+
+@router.delete("/avatar", response_model=AvatarOut)
+async def delete_avatar(
+    user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+) -> AvatarOut:
+    avatar = await db.get(UserAvatar, user.id)
+    if avatar is not None:
+        await db.delete(avatar)
+        await db.commit()
+    return AvatarOut()
 
 
 async def _ensure_rows(db: AsyncSession, user: User) -> tuple[UserProfile, UserAccount, UserPreference]:
@@ -88,7 +162,8 @@ async def get_account(
 ) -> AccountOut:
     _, account, _ = await _ensure_rows(db, user)
     await db.commit()
-    return AccountOut(name=account.name, dob=account.dob, language=account.language)
+    language = 'en' if account.language.lower().replace('_', '-').split('-')[0] == 'en' else 'zh'
+    return AccountOut(name=account.name, dob=account.dob, language=language)
 
 
 @router.put("/account", response_model=AccountOut)

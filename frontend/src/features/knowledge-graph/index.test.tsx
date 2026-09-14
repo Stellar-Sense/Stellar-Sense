@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import '@/styles/index.css'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
-import { userEvent } from 'vitest/browser'
+import { page, userEvent } from 'vitest/browser'
 import { KnowledgeGraph } from './index'
 
 const mocks = vi.hoisted(() => ({
@@ -48,6 +49,7 @@ vi.mock('./star-map-3d', async () => {
         'button',
         {
           type: 'button',
+          style: { position: 'absolute', left: '50%', top: '50%' },
           onClick: () => onSelectNode('Transformer'),
         },
         'mock-planet'
@@ -61,28 +63,44 @@ vi.mock('@/components/layout/main', () => ({
   Main: ({ children }: { children: React.ReactNode }) => children,
 }))
 vi.mock('@/components/search', () => ({ Search: () => null }))
-vi.mock('@/components/profile-dropdown', () => ({ ProfileDropdown: () => null }))
-vi.mock('@/components/theme-switch', () => ({ ThemeSwitch: () => null }))
+vi.mock('@/components/profile-dropdown', () => ({
+  ProfileDropdown: () => null,
+}))
 
 describe('KnowledgeGraph', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('jumps to node learning with the selected node id when 开始学习 is clicked', async () => {
-    const screen = await render(<KnowledgeGraph />)
+  afterEach(() => document.documentElement.classList.remove('light', 'dark'))
 
-    const planet = screen.getByRole('button', { name: 'mock-planet' })
-    await expect.element(planet).toBeInTheDocument()
-    await userEvent.click(planet)
+  it.each(['dark'])(
+    'keeps a dark canvas and working navigation in %s mode',
+    async (theme) => {
+      await page.viewport(1280, 900)
+      document.documentElement.classList.add(theme)
+      const screen = await render(<KnowledgeGraph />)
 
-    const startButton = screen.getByRole('button', { name: /开始学习/ })
-    await expect.element(startButton).toBeInTheDocument()
-    await userEvent.click(startButton)
+      const planet = screen.getByRole('button', { name: 'mock-planet' })
+      await expect.element(planet).toBeInTheDocument()
+      const canvas = planet.element().closest('.dark')!
+      expect(canvas).not.toBeNull()
+      expect(
+        getComputedStyle(canvas).getPropertyValue('--graph-label').trim()
+      ).toBe('#dbe6f7')
+      expect(
+        screen.getByRole('heading', { level: 1 }).element().closest('.dark')
+      ).toBe(theme === 'dark' ? document.documentElement : null)
+      await userEvent.click(planet)
 
-    expect(mocks.navigate).toHaveBeenCalledWith({
-      to: '/node-learning',
-      search: { nodeId: 'Transformer' },
-    })
-  })
+      const startButton = screen.getByRole('button', { name: /开始学习/ })
+      await expect.element(startButton).toBeInTheDocument()
+      await userEvent.click(startButton)
+
+      expect(mocks.navigate).toHaveBeenCalledWith({
+        to: '/node-learning',
+        search: { nodeId: 'Transformer' },
+      })
+    }
+  )
 })
