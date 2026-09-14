@@ -9,9 +9,12 @@
 在 backend 环境运行 `python run_local.py`，后端监听 8001；前端运行 `STELLAR_API_TARGET=http://127.0.0.1:8001 pnpm dev`。
 默认模型为 DeepSeek。
 
-仓库已附带 `backend/data/knowledge.json`（579 条知识星图摘要，经资料提供方确认可公开）。`RAG_INDEX_PATH` 不设置或留空时默认读取该文件，不依赖启动目录。自定义相对路径以 backend 为基准，也支持绝对路径；配置错误时明确提示检索不可用，不会悄悄改读其他文件。
+资料通过团队群文件分发，不随 Git 仓库提供。下载 `knowledge.json` 放到 `backend/data/knowledge.json`（没有 data 文件夹就创建）。`RAG_INDEX_PATH` 不设置或留空即可读取，不依赖启动目录；若已有旧的自定义路径，请清空并重启后端。自定义相对路径以 backend 为基准，也支持绝对路径。
 
-该索引由遥感组大纲整理而来，属于摘要，不包含所列教材/PDF原文或视频。来源线索不表示已经读取原文。未映射的节点仍提供标注的模型讲解。
+该文件已加入 .gitignore，不要强制添加到 Git。缺少文件或节点未映射时提供明确标注的模型讲解；文件损坏或无法读取时提示检索不可用。使用资料功能可选，但真实模型问答仍需在 backend/.env 配置自己的 Key。
+
+索引由遥感组大纲整理而来，属于摘要，不包含所列教材/PDF原文或视频，来源线索不表示已经读取原文。
+
 索引结构是 `{"nodes": [...]}`，每条含 `node_id`、`node_name`、`text`、`source_document`、`source_locator`、`original_resource_hint`。
 `app/services/xiaoyu.py` 的 `NODE_SECTIONS` 暂将 7 个网页节点映射到资料小节，后续需统一知识点 ID 并替换基础匹配检索。
 
@@ -29,7 +32,7 @@ metadata.context 内字段使用 snake_case；请求 context 支持 camelCase。
 
 ## 验证及范围
 
-后端：`python -m unittest discover -s tests -p test_xiaoyu.py`（8 项，含仓库索引完整性及默认路径检索）。前端：`pnpm exec tsc -b`。
+后端：`python -m unittest discover -s tests -p test_xiaoyu.py`（9 项，使用临时测试资料验证默认路径、相对路径和文件缺失，不依赖群文件）。前端：`pnpm exec tsc -b`。
 已在本地验证 DeepSeek 的辐射校正回答、4 条摘要引用、跳转后历史和上下文保留；无资料讲解已通过单元测试，用户报告补充验证通过。
 
 本次不含新版学习区、文档/视频、小测、知识库管理、悬浮窗。驾驶舱/路径规划仍使用原实现；页面原有能力列表和静态建议不代表本次已实现。

@@ -1,10 +1,11 @@
 import json
 import unittest
+import tempfile
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from app.services.xiaoyu import CompanionService, SummaryRetriever, NODE_SECTIONS
-from app.config import BASE_DIR
+from app.services.xiaoyu import CompanionService, SummaryRetriever
 
 
 class Retriever:
@@ -26,27 +27,38 @@ class Generator:
                            "suggested_action": "测试建议"})
 
 
-class BundledIndexTests(unittest.TestCase):
-    def test_default_index_covers_mapped_nodes(self):
+class LocalIndexTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.base = Path(self.temp.name)
+        self.path = self.base / "data/knowledge.json"
+        self.path.parent.mkdir()
+        self.path.write_text(json.dumps({"nodes": [{"node_id": "5.1.1", "node_name": "测试节点",
+            "text": "测试摘要", "source_document": "测试文档", "source_locator": "测试位置",
+            "original_resource_hint": "测试线索"}]}))
+        self.base_patch = patch("app.services.xiaoyu.BASE_DIR", self.base)
+        self.base_patch.start()
+        self.addCleanup(self.base_patch.stop)
+
+    def test_default_index(self):
         with patch("app.services.xiaoyu.settings", SimpleNamespace(rag_index_path="")):
-            for node in NODE_SECTIONS:
-                with self.subTest(node=node):
-                    self.assertTrue(SummaryRetriever().retrieve("解释这个知识点", node))
+            self.assertTrue(SummaryRetriever().retrieve("问题", "辐射校正"))
             self.assertEqual(SummaryRetriever().retrieve("问题", "图像增强"), [])
 
-    def test_relative_override_resolves_from_backend(self):
+    def test_relative_override(self):
         with patch("app.services.xiaoyu.settings", SimpleNamespace(rag_index_path="data/knowledge.json")):
-            chunks = SummaryRetriever().retrieve("辐射定标", "辐射校正")
-        self.assertTrue(chunks)
-        self.assertTrue(all(c["evidenceKind"] == "summary" for c in chunks))
+            self.assertTrue(SummaryRetriever().retrieve("问题", "辐射校正"))
 
-    def test_bundled_index_integrity(self):
-        data = json.loads((BASE_DIR / "data/knowledge.json").read_text())
-        self.assertEqual(len(data["nodes"]), 579)
-        self.assertEqual(len({r["node_id"] for r in data["nodes"]}), 579)
-        for row in data["nodes"]:
-            for field in ("node_id", "node_name", "text", "source_document", "source_locator", "original_resource_hint"):
-                self.assertIn(field, row)
+    def test_missing_file_returns_no_materials(self):
+        with patch("app.services.xiaoyu.settings", SimpleNamespace(rag_index_path="missing.json")):
+            self.assertEqual(SummaryRetriever().retrieve("问题", "辐射校正"), [])
+
+    def test_corrupt_file_is_not_silently_ignored(self):
+        self.path.write_text("invalid json")
+        with patch("app.services.xiaoyu.settings", SimpleNamespace(rag_index_path="")):
+            with self.assertRaises(ValueError):
+                SummaryRetriever().retrieve("问题", "辐射校正")
 
 
 class CompanionTests(unittest.IsolatedAsyncioTestCase):

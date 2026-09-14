@@ -31,6 +31,8 @@ class SummaryRetriever:
         index_path = Path(settings.rag_index_path) if settings.rag_index_path.strip() else BASE_DIR / "data" / "knowledge.json"
         if not index_path.is_absolute():
             index_path = BASE_DIR / index_path
+        if not index_path.exists():
+            return []
         rows = json.loads(index_path.read_text(encoding="utf-8"))["nodes"]
         prefixes = NODE_SECTIONS.get(node_id, ())
         candidates = [r for r in rows if r["node_id"].startswith(prefixes)]
