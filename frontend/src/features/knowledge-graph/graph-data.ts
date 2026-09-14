@@ -100,8 +100,7 @@ export const getNodeStatusColors = (status: NodeStatus) => {
       }
     default:
       return {
-        gradient:
-          'linear-gradient(135deg, rgba(15,23,42,0.98) 0%, rgba(51,65,85,0.92) 100%)',
+        gradient: 'var(--planet-unlearned-fill)',
         border: 'rgba(148,163,184,0.72)',
         ring: 'rgba(71,85,105,0.2)',
         glow: 'rgba(15,23,42,0.12)',

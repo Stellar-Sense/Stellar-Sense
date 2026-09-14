@@ -68,21 +68,20 @@ const styleLabel = (
   element.style.transition = 'opacity 160ms ease-out'
 
   if (kind === 'node') {
-    element.style.color = '#dbe6f7'
+    element.style.color = 'var(--graph-label)'
     element.style.fontWeight = '500'
     element.style.letterSpacing = '0.02em'
-    element.style.textShadow =
-      '0 0 10px rgba(15, 23, 42, 0.95), 0 0 4px rgba(2, 6, 23, 0.9)'
+    element.style.textShadow = 'var(--graph-label-shadow)'
   } else if (kind === 'domain') {
-    element.style.color = 'rgba(125, 211, 252, 0.78)'
+    element.style.color = 'var(--graph-domain-label)'
     element.style.letterSpacing = '0.16em'
     element.style.fontWeight = '600'
-    element.style.textShadow = '0 0 12px rgba(2, 6, 23, 0.9)'
+    element.style.textShadow = 'var(--graph-label-shadow)'
   } else {
-    element.style.color = 'rgba(253, 230, 138, 0.92)'
+    element.style.color = 'var(--graph-core-label)'
     element.style.fontWeight = '600'
     element.style.letterSpacing = '0.08em'
-    element.style.textShadow = '0 0 14px rgba(2, 6, 23, 0.95)'
+    element.style.textShadow = 'var(--graph-label-shadow)'
   }
 }
 

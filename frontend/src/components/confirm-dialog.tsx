@@ -1,3 +1,4 @@
+import { t, useLocale } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import {
   AlertDialog,
@@ -28,6 +29,8 @@ type ConfirmDialogProps = {
 )
 
 export function ConfirmDialog(props: ConfirmDialogProps) {
+  useLocale((state) => state.locale)
+
   const {
     title,
     desc,
@@ -54,7 +57,7 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
         {children}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isLoading}>
-            {cancelBtnText ?? 'Cancel'}
+            {cancelBtnText ?? t('Cancel')}
           </AlertDialogCancel>
           <Button
             type={form ? 'submit' : 'button'}
@@ -63,7 +66,7 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
             variant={destructive ? 'destructive' : 'default'}
             disabled={disabled || isLoading}
           >
-            {confirmText ?? 'Continue'}
+            {confirmText ?? t('Continue')}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

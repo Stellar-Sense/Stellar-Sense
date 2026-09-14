@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { t, useLocale } from '@/lib/i18n'
 import {
   Card,
   CardContent,
@@ -11,21 +12,24 @@ import { AuthLayout } from '../auth-layout'
 import { SignUpForm } from './components/sign-up-form'
 
 export function SignUp() {
+  useLocale((state) => state.locale)
+
   return (
     <AuthLayout>
-      <Card className='max-w-sm gap-4'>
+      <Card className='w-full max-w-xl gap-4'>
         <CardHeader>
           <CardTitle className='text-lg tracking-tight'>
-            Create an account
+            {t('Create an account')}
           </CardTitle>
           <CardDescription>
-            Enter your email and password to create an account. <br />
-            Already have an account?{' '}
+            {t('设置账号并选择学习标签，开启个性化学习。')}
+            <br />
+            {t('Already have an account?')}{' '}
             <Link
               to='/sign-in'
               className='underline underline-offset-4 hover:text-primary'
             >
-              Sign In
+              {t('Sign In')}
             </Link>
           </CardDescription>
         </CardHeader>
@@ -34,19 +38,19 @@ export function SignUp() {
         </CardContent>
         <CardFooter>
           <p className='px-8 text-center text-sm text-muted-foreground'>
-            By creating an account, you agree to our{' '}
+            {t('By creating an account, you agree to our')}{' '}
             <a
               href='/terms'
               className='underline underline-offset-4 hover:text-primary'
             >
-              Terms of Service
+              {t('Terms of Service')}
             </a>{' '}
-            and{' '}
+            {t('and')}{' '}
             <a
               href='/privacy'
               className='underline underline-offset-4 hover:text-primary'
             >
-              Privacy Policy
+              {t('Privacy Policy')}
             </a>
             .
           </p>

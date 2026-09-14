@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { streamChat, type CompanionMetadata } from '@/lib/chat-stream'
+import { t, useLocale } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,7 +25,6 @@ import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
-import { ThemeSwitch } from '@/components/theme-switch'
 import { useExplainNode, useLearningNode, useLearningNodes } from './api'
 import { NodeAssessment } from './assessment'
 
@@ -57,6 +57,8 @@ const nextLocalId = () => {
 }
 
 export function NodeLearning() {
+  useLocale((state) => state.locale)
+
   const navigate = useNavigate()
   const [conversationId, setConversationId] = useState<string | undefined>()
   const [level, setLevel] = useState<'beginner' | 'advanced'>('beginner')
@@ -126,7 +128,7 @@ export function NodeLearning() {
       <>
         <Header>
           <Search className='me-auto' />
-          <ThemeSwitch />
+
           <ProfileDropdown />
         </Header>
 
@@ -135,7 +137,7 @@ export function NodeLearning() {
           className='relative overflow-hidden px-4 py-3 md:px-5 md:py-4'
         >
           <div className='flex h-full items-center justify-center text-sm text-slate-400'>
-            正在加载节点内容…
+            {t('正在加载节点内容…')}
           </div>
         </Main>
       </>
@@ -255,7 +257,7 @@ export function NodeLearning() {
     <>
       <Header>
         <Search className='me-auto' />
-        <ThemeSwitch />
+
         <ProfileDropdown />
       </Header>
 
@@ -275,7 +277,7 @@ export function NodeLearning() {
               <div className='flex min-w-0 flex-wrap items-center gap-3'>
                 <span className='inline-flex shrink-0 items-center gap-1.5 rounded-full border border-sky-400/20 bg-sky-500/10 px-2.5 py-1 text-[10px] font-medium tracking-[0.2em] text-sky-200 uppercase'>
                   <BookOpen className='h-3 w-3' />
-                  节点学习
+                  {t('节点学习')}
                 </span>
                 <h1 className='text-lg font-bold tracking-tight text-white md:text-xl'>
                   {selectedNode.title}
@@ -285,11 +287,13 @@ export function NodeLearning() {
               <div className='flex flex-wrap items-center gap-2'>
                 <div className='inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-1 text-[10px] font-medium tracking-[0.16em] text-violet-200 uppercase'>
                   <Sparkles className='h-3 w-3' />
-                  学习进度 {selectedNode.progress}%
+                  {t('学习进度')}
+                  {selectedNode.progress}%
                 </div>
                 <div className='inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/60 px-2.5 py-1 text-xs text-slate-300'>
                   <Clock3 className='h-3.5 w-3.5 text-sky-300' />
-                  预计学习时间 {selectedNode.duration}
+                  {t('预计学习时间')}
+                  {selectedNode.duration}
                 </div>
               </div>
             </div>
@@ -299,7 +303,7 @@ export function NodeLearning() {
             <aside className='flex min-h-0 flex-col overflow-y-auto rounded-2xl border border-white/10 bg-slate-950/65 p-3 shadow-[0_12px_30px_rgba(15,23,42,0.42)] backdrop-blur-sm'>
               <div className='mb-2 flex items-center justify-between'>
                 <h2 className='text-sm font-semibold tracking-[0.18em] text-slate-300 uppercase'>
-                  节点学习
+                  {t('节点学习')}
                 </h2>
                 <span className='rounded-full border border-slate-700 bg-slate-900/60 px-2 py-1 text-[10px] text-slate-300'>
                   {currentProgress}%
@@ -308,10 +312,11 @@ export function NodeLearning() {
 
               <div className='mb-2.5 rounded-2xl border border-slate-800 bg-slate-900/50 p-2.5'>
                 <div className='text-[10px] tracking-[0.18em] text-slate-400 uppercase'>
-                  遥感影像处理
+                  {t('遥感影像处理')}
                 </div>
                 <div className='mt-1 text-xs text-slate-200'>
-                  学习进度：{currentProgress}%
+                  {t('学习进度：')}
+                  {currentProgress}%
                 </div>
                 <div className='mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-800'>
                   <div
@@ -391,7 +396,8 @@ export function NodeLearning() {
                       </CardTitle>
                     </div>
                     <div className='inline-flex items-center rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-1 text-[10px] font-medium tracking-[0.16em] text-violet-200 uppercase'>
-                      本节学习进度 {selectedNode.progress}%
+                      {t('本节学习进度')}
+                      {selectedNode.progress}%
                     </div>
                   </div>
                 </CardHeader>
@@ -404,7 +410,7 @@ export function NodeLearning() {
                   <div className='rounded-2xl border border-slate-800 bg-slate-900/60 p-3'>
                     <div className='flex items-center gap-2 text-sm font-medium text-slate-200'>
                       <Target className='h-4 w-4 text-sky-300' />
-                      学习目标
+                      {t('学习目标')}
                     </div>
                     <ul className='mt-2 space-y-1.5 text-xs text-slate-300'>
                       {selectedNode.objectives.map((item) => (
@@ -419,7 +425,7 @@ export function NodeLearning() {
                   <div className='rounded-2xl border border-slate-800 bg-slate-900/60 p-3'>
                     <div className='flex items-center gap-2 text-sm font-medium text-slate-200'>
                       <BrainCircuit className='h-4 w-4 text-violet-300' />
-                      核心知识
+                      {t('核心知识')}
                     </div>
                     <p className='mt-2 text-xs leading-5 text-slate-300'>
                       {selectedNode.concept}
@@ -430,7 +436,7 @@ export function NodeLearning() {
                     <div className='flex items-center justify-between gap-3'>
                       <div className='flex items-center gap-2 text-sm font-medium text-slate-200'>
                         <Sparkles className='h-4 w-4 text-sky-300' />
-                        常见方法
+                        {t('常见方法')}
                       </div>
                       <Button
                         type='button'
@@ -442,7 +448,7 @@ export function NodeLearning() {
                         {explainNode.isPending ? (
                           <>
                             <Loader2 className='mr-2 h-3.5 w-3.5 animate-spin' />
-                            AI 正在分析这个知识点……
+                            {t('AI 正在分析这个知识点……')}
                           </>
                         ) : (
                           '让 AI 解释'
@@ -472,7 +478,7 @@ export function NodeLearning() {
                   <div className='rounded-2xl border border-slate-800 bg-slate-900/60 p-3'>
                     <div className='flex items-center gap-2 text-sm font-medium text-slate-200'>
                       <MessageSquareText className='h-4 w-4 text-emerald-300' />
-                      遥感案例
+                      {t('遥感案例')}
                     </div>
                     <div className='mt-3 grid gap-3 lg:grid-cols-[1.1fr_0.9fr]'>
                       <div className='rounded-2xl border border-slate-700 bg-slate-950/70 p-3'>
@@ -491,7 +497,7 @@ export function NodeLearning() {
                           <div className='absolute top-6 right-6 bottom-6 left-6 rounded-2xl border border-sky-400/25 bg-slate-950/30 backdrop-blur-sm' />
                         </div>
                         <div className='mt-2 text-center text-[11px] tracking-[0.18em] text-slate-400 uppercase'>
-                          原始影像 → 增强后影像
+                          {t('原始影像 → 增强后影像')}
                         </div>
                       </div>
                     </div>
@@ -513,7 +519,7 @@ export function NodeLearning() {
                   onClick={handlePreviousNode}
                 >
                   <ArrowLeft className='mr-2 h-4 w-4' />
-                  上一个节点
+                  {t('上一个节点')}
                 </Button>
 
                 <div className='flex flex-wrap items-center gap-3'>
@@ -523,14 +529,14 @@ export function NodeLearning() {
                     className='rounded-xl border-violet-500/30 bg-violet-500/8 text-violet-100 hover:bg-violet-500/15'
                     onClick={handleMarkCompleted}
                   >
-                    进入学习评价
+                    {t('进入学习评价')}
                   </Button>
                   <Button
                     type='button'
                     className='rounded-xl bg-sky-500 text-white shadow-lg shadow-sky-500/20 hover:bg-sky-400'
                     onClick={handleNextNode}
                   >
-                    下一个节点
+                    {t('下一个节点')}
                     <ArrowRight className='ml-2 h-4 w-4' />
                   </Button>
                 </div>
@@ -545,22 +551,22 @@ export function NodeLearning() {
                   </div>
                   <div>
                     <div className='text-sm font-semibold text-white'>
-                      AI 学习助手
+                      {t('AI 学习助手')}
                     </div>
                     <div className='mt-0.5 flex items-center gap-1 text-[11px] text-emerald-300'>
                       <span className='h-2 w-2 rounded-full bg-emerald-400' />
-                      在线
+                      {t('在线')}
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className='mt-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-2.5 text-xs leading-5 text-slate-300'>
-                <p>你好，我是小遇，你的遥感学习助手。</p>
+                <p>{t('你好，我是小遇，你的遥感学习助手。')}</p>
                 <label className='mt-2 block'>
-                  讲解深度：
+                  {t('讲解深度：')}
                   <select
-                    aria-label='讲解深度'
+                    aria-label={t('讲解深度')}
                     value={level}
                     disabled={isAiReplying}
                     onChange={(e) =>
@@ -568,8 +574,8 @@ export function NodeLearning() {
                     }
                     className='rounded bg-slate-800 p-1'
                   >
-                    <option value='beginner'>入门</option>
-                    <option value='advanced'>进阶</option>
+                    <option value='beginner'>{t('入门')}</option>
+                    <option value='advanced'>{t('进阶')}</option>
                   </select>
                 </label>
                 {conversationId && (
@@ -585,11 +591,16 @@ export function NodeLearning() {
                       })
                     }
                   >
-                    在完整助手中继续
+                    {t('在完整助手中继续')}
                   </Button>
                 )}
-                <p className='mt-2'>如果你对当前知识点有疑问，可以直接问我。</p>
-                <p className='mt-2'>当前主题：{selectedNode.title}</p>
+                <p className='mt-2'>
+                  {t('如果你对当前知识点有疑问，可以直接问我。')}
+                </p>
+                <p className='mt-2'>
+                  {t('当前主题：')}
+                  {selectedNode.title}
+                </p>
               </div>
 
               <div className='mt-3 shrink-0 space-y-1.5'>
@@ -600,7 +611,7 @@ export function NodeLearning() {
                     className='flex w-full items-center justify-between rounded-xl border border-slate-700 bg-slate-900/50 px-3 py-2 text-left text-sm text-slate-200 transition hover:border-slate-600 hover:bg-slate-900'
                     onClick={() => handleSendMessage(question)}
                   >
-                    <span>{question}</span>
+                    <span>{t(question)}</span>
                     <ChevronRight className='h-4 w-4 text-slate-400' />
                   </button>
                 ))}
@@ -608,12 +619,12 @@ export function NodeLearning() {
 
               <div className='mt-3 flex min-h-[320px] flex-1 shrink-0 flex-col rounded-2xl border border-slate-800 bg-slate-950/40 p-3'>
                 <p className='mb-2 shrink-0 text-xs font-medium text-violet-200'>
-                  小遇的回答
+                  {t('小遇的回答')}
                 </p>
                 <div
                   ref={answerListRef}
                   role='log'
-                  aria-label='小遇的回答'
+                  aria-label={t('小遇的回答')}
                   className='h-60 min-h-[220px] flex-1 space-y-3 overflow-y-auto pr-1'
                 >
                   {messages.map((message) => (
@@ -640,7 +651,7 @@ export function NodeLearning() {
                   {isAiReplying && !streamingText && (
                     <div className='flex max-w-[90%] items-center gap-2 rounded-2xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-300'>
                       <Loader2 className='h-3.5 w-3.5 animate-spin text-sky-300' />
-                      AI 正在思考……
+                      {t('AI 正在思考……')}
                     </div>
                   )}
                 </div>
@@ -650,7 +661,7 @@ export function NodeLearning() {
                     value={chatInput}
                     onChange={(event) => setChatInput(event.target.value)}
                     onKeyDown={handleChatKeyDown}
-                    placeholder='输入你的问题...'
+                    placeholder={t('输入你的问题...')}
                     className='h-9 rounded-xl border-slate-700 bg-slate-950/70 text-sm text-white placeholder:text-slate-400'
                   />
                   <Button
@@ -658,7 +669,7 @@ export function NodeLearning() {
                     className='h-9 rounded-xl bg-violet-500 text-white hover:bg-violet-400'
                     onClick={() => handleSendMessage()}
                   >
-                    发送
+                    {t('发送')}
                   </Button>
                 </div>
               </div>

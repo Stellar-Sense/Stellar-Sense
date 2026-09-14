@@ -1,7 +1,8 @@
 import { useForm } from 'react-hook-form'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { userEvent } from 'vitest/browser'
+import { useLocale } from '@/lib/i18n'
 import {
   Form,
   FormControl,
@@ -10,6 +11,8 @@ import {
   FormLabel,
 } from '@/components/ui/form'
 import { PasswordInput } from './password-input'
+
+beforeEach(() => useLocale.getState().setLocale('en'))
 
 describe('PasswordInput', () => {
   it('renders the password input correctly', async () => {

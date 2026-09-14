@@ -5,6 +5,7 @@ import re
 from pydantic import field_validator
 
 from app.schemas.common import CamelModel
+from app.schemas.learner_profile import LearnerProfileWrite
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -24,6 +25,7 @@ class LoginRequest(CamelModel):
 class RegisterRequest(CamelModel):
     email: str
     password: str
+    learner_profile: LearnerProfileWrite
 
     @field_validator("email")
     @classmethod

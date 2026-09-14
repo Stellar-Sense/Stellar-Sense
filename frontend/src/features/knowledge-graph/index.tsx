@@ -1,13 +1,13 @@
 import { Suspense, lazy, useCallback, useMemo, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Compass, Sparkles } from 'lucide-react'
+import { t, useLocale } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
-import { ThemeSwitch } from '@/components/theme-switch'
 import { useKnowledgeGraph } from './api'
 import { FloatingPanel } from './floating-panel'
 import {
@@ -37,6 +37,8 @@ const statusClassNames: Record<NodeStatus, string> = {
 }
 
 export function KnowledgeGraph() {
+  useLocale((state) => state.locale)
+
   const navigate = useNavigate()
   const [view, setView] = useState<ViewMode>('3d')
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
@@ -133,7 +135,7 @@ export function KnowledgeGraph() {
 
       <Header>
         <Search />
-        <ThemeSwitch />
+
         <ProfileDropdown />
       </Header>
 
@@ -153,23 +155,23 @@ export function KnowledgeGraph() {
           <div className='flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-2.5 backdrop-blur-sm'>
             <div className='flex items-center gap-3'>
               <span className='inline-flex items-center rounded-full border border-sky-400/20 bg-sky-500/10 px-2.5 py-1 text-[10px] font-medium tracking-[0.2em] text-sky-200 uppercase'>
-                Remote Sensing Knowledge Universe
+                {t('Remote Sensing Knowledge Universe')}
               </span>
               <h1 className='text-lg font-bold tracking-tight text-white md:text-xl'>
-                学科星图
+                {t('学科星图')}
               </h1>
             </div>
 
             <div
               className='flex items-center gap-1 rounded-xl border border-white/10 bg-slate-900/70 p-1'
               role='group'
-              aria-label='视图切换'
+              aria-label={t('视图切换')}
             >
               {viewOptions.map((option) => (
                 <button
                   key={option.id}
                   type='button'
-                  title={option.hint}
+                  title={t(option.hint)}
                   aria-pressed={view === option.id}
                   onClick={() => setView(option.id)}
                   className={cn(
@@ -179,13 +181,14 @@ export function KnowledgeGraph() {
                       : 'text-slate-300 hover:bg-white/5'
                   )}
                 >
-                  {option.label}
+                  {t(option.label)}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className='relative flex min-h-[420px] flex-1 flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-950/60 p-2 shadow-[0_12px_30px_rgba(15,23,42,0.42)] backdrop-blur-sm xl:min-h-0'>
+          {/* 宇宙画布及其浮层固定使用深色，页面其余部分跟随用户主题。 */}
+          <div className='dark relative flex min-h-[420px] flex-1 flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-950/60 p-2 text-slate-100 shadow-[0_12px_30px_rgba(15,23,42,0.42)] backdrop-blur-sm xl:min-h-0'>
             {fallbackNotice && (
               <div className='pointer-events-none absolute top-4 left-1/2 z-40 w-[min(92%,560px)] -translate-x-1/2 rounded-2xl border border-amber-400/20 bg-amber-950/90 px-3 py-2 text-center text-[11px] text-amber-200 shadow-lg backdrop-blur-sm'>
                 {fallbackNotice}
@@ -194,7 +197,7 @@ export function KnowledgeGraph() {
 
             {isPending ? (
               <div className='flex h-full min-h-[280px] items-center justify-center rounded-2xl border border-white/8 bg-slate-950/80 text-sm text-slate-400'>
-                正在加载知识星图…
+                {t('正在加载知识星图…')}
               </div>
             ) : view === '3d' ? (
               <Suspense
@@ -206,7 +209,7 @@ export function KnowledgeGraph() {
                         animation: 'galaxyLoading 1.8s ease-in-out infinite',
                       }}
                     />
-                    正在构建知识星系…
+                    {t('正在构建知识星系…')}
                   </div>
                 }
               >
@@ -235,7 +238,7 @@ export function KnowledgeGraph() {
               />
             )}
             <FloatingPanel
-              title='知识状态'
+              title={t('知识状态')}
               icon={<Compass className='h-4 w-4' />}
               collapsible
               defaultOpen
@@ -243,35 +246,35 @@ export function KnowledgeGraph() {
             >
               <div className='space-y-2.5'>
                 <div className='flex items-center justify-between rounded-xl border border-slate-600/50 bg-slate-800/60 px-3 py-2 text-sm'>
-                  <span className='text-slate-200'>● 全部节点</span>
+                  <span className='text-slate-200'>{t('● 全部节点')}</span>
                   <span className='text-slate-200'>{stats.total}</span>
                 </div>
                 <div className='flex items-center justify-between rounded-xl border border-sky-400/20 bg-sky-500/10 px-3 py-2 text-sm'>
-                  <span className='text-sky-100'>● 已掌握</span>
+                  <span className='text-sky-100'>{t('● 已掌握')}</span>
                   <span className='text-slate-200'>{stats.mastered}</span>
                 </div>
                 <div className='flex items-center justify-between rounded-xl border border-violet-400/20 bg-violet-500/10 px-3 py-2 text-sm'>
-                  <span className='text-violet-100'>● 当前学习</span>
+                  <span className='text-violet-100'>{t('● 当前学习')}</span>
                   <span className='text-slate-200'>{stats.learning}</span>
                 </div>
                 <div className='flex items-center justify-between rounded-xl border border-slate-600/50 bg-slate-800/60 px-3 py-2 text-sm'>
-                  <span className='text-slate-200'>● 未学习</span>
+                  <span className='text-slate-200'>{t('● 未学习')}</span>
                   <span className='text-slate-200'>{stats.unlearned}</span>
                 </div>
               </div>
 
               {view === '3d' && (
                 <p className='mt-3 text-[11px] leading-5 text-slate-400'>
-                  <span className='text-slate-300'>色相</span>
-                  表示所属领域，轨道半径表示先修层级，
-                  <span className='text-slate-300'>亮度与大气/环</span>
-                  表示掌握状态；选中后会高亮前置链路。
+                  <span className='text-slate-300'>{t('色相')}</span>
+                  {t('表示所属领域，轨道半径表示先修层级，')}
+                  <span className='text-slate-300'>{t('亮度与大气/环')}</span>
+                  {t('表示掌握状态；选中后会高亮前置链路。')}
                 </p>
               )}
 
               <div className='mt-3 rounded-2xl border border-white/10 bg-slate-900/70 p-3'>
                 <div className='text-[10px] tracking-[0.18em] text-slate-400 uppercase'>
-                  Domains
+                  {t('Domains')}
                 </div>
                 <div className='mt-2 flex flex-wrap gap-x-3 gap-y-1.5'>
                   {(data?.domainOrder ?? domainOrder).map((domain) => (
@@ -295,7 +298,7 @@ export function KnowledgeGraph() {
 
             {selectedNode && selectedNodeDetail && (
               <FloatingPanel
-                title='知识点详情'
+                title={t('知识点详情')}
                 icon={<Sparkles className='h-4 w-4' />}
                 onClose={() => handleSelectNode(null)}
                 className='right-4 bottom-4 max-h-[min(65%,460px)] w-[min(320px,calc(100%-2rem))]'
@@ -303,7 +306,7 @@ export function KnowledgeGraph() {
                 <div className='mb-3 flex items-start justify-between gap-2'>
                   <div>
                     <div className='text-[10px] tracking-[0.18em] text-slate-400 uppercase'>
-                      Selected
+                      {t('Selected')}
                     </div>
                     <h2 className='mt-1 text-lg font-semibold text-white'>
                       {selectedNode.name}
@@ -315,45 +318,45 @@ export function KnowledgeGraph() {
                       statusClassNames[selectedNode.status]
                     )}
                   >
-                    {statusLabel[selectedNode.status]}
+                    {t(statusLabel[selectedNode.status])}
                   </span>
                 </div>
 
                 <dl className='space-y-2.5 text-sm text-slate-300'>
                   <div>
-                    <dt className='text-slate-400'>知识节点</dt>
+                    <dt className='text-slate-400'>{t('知识节点')}</dt>
                     <dd className='mt-1 text-slate-100'>{selectedNode.name}</dd>
                   </div>
                   <div>
-                    <dt className='text-slate-400'>学习状态</dt>
+                    <dt className='text-slate-400'>{t('学习状态')}</dt>
                     <dd className='mt-1 text-slate-100'>
-                      {statusLabel[selectedNode.status]}
+                      {t(statusLabel[selectedNode.status])}
                     </dd>
                   </div>
                   <div>
-                    <dt className='text-slate-400'>知识简介</dt>
+                    <dt className='text-slate-400'>{t('知识简介')}</dt>
                     <dd className='mt-1 text-slate-100'>
                       {selectedNodeDetail.description}
                     </dd>
                   </div>
                   <div>
-                    <dt className='text-slate-400'>前置知识</dt>
+                    <dt className='text-slate-400'>{t('前置知识')}</dt>
                     <dd className='mt-1 text-slate-100'>
                       {selectedNode.prerequisites.length > 0
                         ? selectedNode.prerequisites
                             .map((id) => nodeMap[id]?.name ?? id)
                             .join(' · ')
-                        : '无'}
+                        : t('无')}
                     </dd>
                   </div>
                   <div>
-                    <dt className='text-slate-400'>学习进度</dt>
+                    <dt className='text-slate-400'>{t('学习进度')}</dt>
                     <dd className='mt-1 text-slate-100'>
                       {selectedNodeDetail.progress}%
                     </dd>
                   </div>
                   <div>
-                    <dt className='text-slate-400'>所属领域</dt>
+                    <dt className='text-slate-400'>{t('所属领域')}</dt>
                     <dd className='mt-1 flex items-center gap-2 text-slate-100'>
                       <span
                         className='h-2 w-2 rounded-full'
@@ -372,7 +375,7 @@ export function KnowledgeGraph() {
                   onClick={handleStartLearning}
                 >
                   <Sparkles className='mr-2 h-4 w-4' />
-                  开始学习 →
+                  {t('开始学习 →')}
                 </Button>
               </FloatingPanel>
             )}

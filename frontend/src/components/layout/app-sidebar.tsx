@@ -1,6 +1,8 @@
 import { ShieldCheck } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
+import { t, useLocale } from '@/lib/i18n'
 import { useLayout } from '@/context/layout-provider'
+import { useCurrentUser } from '@/hooks/use-current-user'
 import {
   Sidebar,
   SidebarContent,
@@ -15,10 +17,12 @@ import { NavUser } from './nav-user'
 import { TeamSwitcher } from './team-switcher'
 
 export function AppSidebar() {
+  useLocale((state) => state.locale)
+
   const { collapsible, variant } = useLayout()
-  const isAdministrator = useAuthStore((state) =>
-    state.auth.user?.role.includes('admin')
-  )
+  const authUser = useAuthStore((state) => state.auth.user)
+  const user = useCurrentUser()
+  const isAdministrator = authUser?.role.includes('admin')
   return (
     <Sidebar
       collapsible={collapsible}
@@ -34,7 +38,7 @@ export function AppSidebar() {
         ))}
         {isAdministrator && (
           <NavGroup
-            title='管理员'
+            title={t('管理员')}
             items={[
               {
                 title: '知识星云管理',
@@ -46,7 +50,7 @@ export function AppSidebar() {
         )}
       </SidebarContent>
       <SidebarFooter className='border-t border-white/10 bg-transparent px-2 py-3'>
-        <NavUser user={sidebarData.user} />
+        <NavUser user={user} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

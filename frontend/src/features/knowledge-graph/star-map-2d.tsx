@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Check, Minus, Plus, ZoomIn } from 'lucide-react'
+import { t, useLocale } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import {
   getNodeDetail,
@@ -42,10 +43,10 @@ const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max)
 
 const relationColors = {
-  prerequisite: '#7dd3fc',
-  contains: '#a78bfa',
-  applies: '#34d399',
-  related: '#fbbf24',
+  prerequisite: 'var(--relation-prerequisite)',
+  contains: 'var(--relation-contains)',
+  applies: 'var(--relation-applies)',
+  related: 'var(--relation-related)',
 }
 
 const importantNode = (node: KnowledgeNode) =>
@@ -67,6 +68,8 @@ export function StarMap2D({
   onSelectNode,
   onHoverNode,
 }: StarMap2DProps) {
+  useLocale((state) => state.locale)
+
   const [positions, setPositions] = useState<Record<string, NodePosition>>(() =>
     Object.fromEntries(nodes.map((node) => [node.id, { x: node.x, y: node.y }]))
   )
@@ -374,7 +377,7 @@ export function StarMap2D({
     <div
       ref={graphRef}
       role='region'
-      aria-label='知识星图画布'
+      aria-label={t('知识星图画布')}
       className='relative h-full overflow-hidden rounded-2xl border border-white/8 bg-slate-950/80'
       onPointerDown={handleCanvasPointerDown}
       onPointerMove={handleCanvasPointerMove}
@@ -415,7 +418,7 @@ export function StarMap2D({
         </div>
 
         <svg
-          aria-label='知识关系连线'
+          aria-label={t('知识关系连线')}
           className='absolute inset-0 z-10 h-full w-full'
         >
           <defs>
@@ -607,7 +610,7 @@ export function StarMap2D({
                   className='absolute inset-0 rounded-full blur-xl'
                   style={{
                     background: colors.gradient,
-                    opacity: isSelected ? 0.9 : isHovering ? 0.8 : 0.6,
+                    opacity: `calc(${isSelected ? 0.9 : isHovering ? 0.8 : 0.6} * var(--planet-glow-strength))`,
                     transform: `scale(${isSelected ? 1.35 : isHovering ? 1.2 : 1.08})`,
                     filter: 'blur(14px)',
                   }}
@@ -660,7 +663,15 @@ export function StarMap2D({
                   {node.status === 'mastered' ? (
                     <Check className='h-4 w-4 text-white' />
                   ) : (
-                    <span className='text-[10px] font-semibold text-white'>
+                    <span
+                      className='text-[10px] font-semibold text-white'
+                      style={{
+                        color:
+                          node.status === 'unlearned'
+                            ? 'var(--graph-label)'
+                            : undefined,
+                      }}
+                    >
                       {node.name.slice(0, 1)}
                     </span>
                   )}
@@ -691,7 +702,7 @@ export function StarMap2D({
 
       <div className='absolute top-3 right-3 z-20 flex flex-col gap-2 rounded-xl border border-white/10 bg-slate-950/75 p-2 shadow-lg backdrop-blur-sm'>
         <output
-          aria-label='缩放比例'
+          aria-label={t('缩放比例')}
           className='text-center text-xs text-slate-300'
         >
           {Math.round(viewport.scale * 100)}%
@@ -700,7 +711,7 @@ export function StarMap2D({
           type='button'
           onClick={() => zoomBy(0.12)}
           className='flex h-8 w-8 items-center justify-center rounded-lg border border-sky-400/20 bg-sky-500/10 text-sky-100 hover:bg-sky-500/15'
-          aria-label='Zoom in'
+          aria-label={t('Zoom in')}
         >
           <Plus className='h-4 w-4' />
         </button>
@@ -708,7 +719,7 @@ export function StarMap2D({
           type='button'
           onClick={() => zoomBy(-0.12)}
           className='flex h-8 w-8 items-center justify-center rounded-lg border border-sky-400/20 bg-sky-500/10 text-sky-100 hover:bg-sky-500/15'
-          aria-label='Zoom out'
+          aria-label={t('Zoom out')}
         >
           <Minus className='h-4 w-4' />
         </button>
@@ -716,7 +727,7 @@ export function StarMap2D({
           type='button'
           onClick={fitCanvas}
           className='flex h-8 w-8 items-center justify-center rounded-lg border border-sky-400/20 bg-sky-500/10 text-sky-100 hover:bg-sky-500/15'
-          aria-label='Fit canvas'
+          aria-label={t('Fit canvas')}
         >
           <ZoomIn className='h-4 w-4' />
         </button>

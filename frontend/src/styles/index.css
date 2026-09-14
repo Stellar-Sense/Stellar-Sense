@@ -13,17 +13,28 @@
 
   html {
     @apply overflow-x-hidden bg-background text-foreground;
-    background-color: #050816;
     scroll-behavior: smooth;
   }
 
   body {
     @apply min-h-svh w-full text-foreground antialiased;
     background:
-      radial-gradient(circle at top left, rgba(96, 165, 250, 0.12), transparent 24%),
-      radial-gradient(circle at top right, rgba(168, 85, 247, 0.14), transparent 28%),
-      radial-gradient(circle at bottom center, rgba(34, 211, 238, 0.1), transparent 32%),
-      linear-gradient(135deg, #050816 0%, #0b1020 50%, #090f1d 100%);
+      radial-gradient(
+        circle at top left,
+        rgba(96, 165, 250, 0.12),
+        transparent 24%
+      ),
+      radial-gradient(
+        circle at top right,
+        rgba(168, 85, 247, 0.14),
+        transparent 28%
+      ),
+      radial-gradient(
+        circle at bottom center,
+        rgba(34, 211, 238, 0.1),
+        transparent 32%
+      ),
+      var(--page-gradient);
   }
 
   body::before {
@@ -32,12 +43,28 @@
     inset: 0;
     pointer-events: none;
     background-image:
-      radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.22) 0 1px, transparent 1.5px),
-      radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.18) 0 1px, transparent 1.6px),
-      radial-gradient(circle at 40% 75%, rgba(255, 255, 255, 0.15) 0 1px, transparent 1.8px),
-      radial-gradient(circle at 80% 65%, rgba(125, 211, 252, 0.18) 0 1.2px, transparent 1.9px);
+      radial-gradient(
+        circle at 10% 20%,
+        rgba(255, 255, 255, 0.22) 0 1px,
+        transparent 1.5px
+      ),
+      radial-gradient(
+        circle at 70% 30%,
+        rgba(255, 255, 255, 0.18) 0 1px,
+        transparent 1.6px
+      ),
+      radial-gradient(
+        circle at 40% 75%,
+        rgba(255, 255, 255, 0.15) 0 1px,
+        transparent 1.8px
+      ),
+      radial-gradient(
+        circle at 80% 65%,
+        rgba(125, 211, 252, 0.18) 0 1.2px,
+        transparent 1.9px
+      );
     background-size: 220px 220px;
-    opacity: 0.45;
+    opacity: var(--star-opacity);
   }
 
   #root {

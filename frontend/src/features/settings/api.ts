@@ -1,6 +1,41 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-
+import { useAuthStore } from '@/stores/auth-store'
 import { apiClient } from '@/lib/api-client'
+import { useLocale } from '@/lib/i18n'
+
+export type AvatarPayload = {
+  dataUrl: string | null
+}
+
+export function useAvatar() {
+  const token = useAuthStore((state) => state.auth.accessToken)
+  return useQuery({
+    queryKey: ['user', 'avatar', token],
+    queryFn: async () =>
+      (await apiClient.get<AvatarPayload>('/user/avatar')).data,
+    enabled: Boolean(token),
+    staleTime: Infinity,
+  })
+}
+
+export function useUpdateAvatar() {
+  const queryClient = useQueryClient()
+  const token = useAuthStore((state) => state.auth.accessToken)
+  return useMutation({
+    mutationFn: async (file: File | null) =>
+      file
+        ? (
+            await apiClient.put<AvatarPayload>('/user/avatar', file, {
+              headers: {
+                'Content-Type': file.type || 'application/octet-stream',
+              },
+            })
+          ).data
+        : (await apiClient.delete<AvatarPayload>('/user/avatar')).data,
+    onSuccess: (data) =>
+      queryClient.setQueryData(['user', 'avatar', token], data),
+  })
+}
 
 export type ProfilePayload = {
   username: string
@@ -56,7 +91,10 @@ export function useUpdateAccount() {
   return useMutation({
     mutationFn: async (payload: AccountPayload) =>
       (await apiClient.put<AccountPayload>('/user/account', payload)).data,
-    onSuccess: (data) => queryClient.setQueryData(['user', 'account'], data),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['user', 'account'], data)
+      useLocale.getState().setLocale(data.language)
+    },
   })
 }
 
