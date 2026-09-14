@@ -1,3 +1,4 @@
+import type { CompanionMetadata } from '@/lib/chat-stream'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { apiClient } from '@/lib/api-client'
@@ -88,9 +89,9 @@ export function useCompleteNode() {
 /** 让 AI 解释当前知识点（无 LLM key 时返回内置解释文案） */
 export function useExplainNode() {
   return useMutation({
-    mutationFn: async (nodeId: string) =>
+    mutationFn: async (request: {nodeId: string; learnerLevel: string}) =>
       (
-        await apiClient.post<{ explanation: string }>('/ai/explain', { nodeId })
+        await apiClient.post<{ explanation: string; metadata?: CompanionMetadata }>('/ai/explain', request)
       ).data,
   })
 }

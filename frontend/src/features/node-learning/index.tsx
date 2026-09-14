@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import { useSearch } from '@tanstack/react-router'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useSearch, useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import {
   ArrowLeft,
@@ -22,7 +22,8 @@ import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { streamChat } from '@/lib/chat-stream'
+import { CompanionEvidence } from '@/components/companion-evidence'
+import { streamChat, type CompanionMetadata } from '@/lib/chat-stream'
 import { cn } from '@/lib/utils'
 
 import {
@@ -38,14 +39,11 @@ type ChatMessage = {
   id: number
   role: 'user' | 'assistant'
   content: string
+  metadata?: CompanionMetadata
 }
 
 
-const quickQuestions = [
-  '什么是直方图均衡化？',
-  '为什么要进行影像增强？',
-  '图像增强和特征提取有什么区别？',
-]
+const quickQuestions = ['这个我没懂，能简单解释一下吗？', '这个知识点有哪些容易混淆的地方？', '请根据资料给我一个自测建议。']
 
 const statusClassMap: Record<NodeStatus, string> = {
   done: 'border-emerald-400/30 bg-emerald-500/8 text-emerald-200',
@@ -61,6 +59,11 @@ const nextLocalId = () => {
 }
 
 export function NodeLearning() {
+  const navigate = useNavigate()
+  const [conversationId, setConversationId] = useState<string | undefined>()
+  const [level, setLevel] = useState<'beginner' | 'advanced'>('beginner')
+  const [explanationMetadata, setExplanationMetadata] = useState<CompanionMetadata>()
+
   const { nodeId: requestedNodeId } = useSearch({
     from: '/_authenticated/node-learning/',
   })
@@ -79,6 +82,11 @@ export function NodeLearning() {
   const [streamingText, setStreamingText] = useState('')
   const [explanationText, setExplanationText] = useState<string | null>(null)
   const streamedRef = useRef('')
+  const answerListRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const list = answerListRef.current
+    if (list) list.scrollTop = list.scrollHeight
+  }, [messages, streamingText, isAiReplying])
 
   const { data: overview } = useLearningNodes()
   const completeNode = useCompleteNode()
@@ -137,11 +145,17 @@ export function NodeLearning() {
   const sequence = overview?.sequence ?? []
 
   const handleSelectNode = (nodeId: string) => {
+    if (isAiReplying) return
+    setConversationId(undefined)
+    setMessages([])
     setSelectedNodeId(nodeId)
     setExplanationText(null)
   }
 
   const handlePreviousNode = () => {
+    if (isAiReplying) return
+    setConversationId(undefined)
+    setMessages([])
     const index = sequence.indexOf(selectedNode.id)
     const nextIndex = Math.max(index - 1, 0)
     setSelectedNodeId(sequence[nextIndex])
@@ -149,6 +163,9 @@ export function NodeLearning() {
   }
 
   const handleNextNode = () => {
+    if (isAiReplying) return
+    setConversationId(undefined)
+    setMessages([])
     const index = sequence.indexOf(selectedNode.id)
     const nextIndex = Math.min(index + 1, sequence.length - 1)
     setSelectedNodeId(sequence[nextIndex])
@@ -156,6 +173,9 @@ export function NodeLearning() {
   }
 
   const handleMarkCompleted = () => {
+    if (isAiReplying) return
+    setConversationId(undefined)
+    setMessages([])
     completeNode.mutate(selectedNode.id, {
       onSuccess: (result) => {
         toast.success(`已完成 ${selectedNode.title}`)
@@ -169,8 +189,8 @@ export function NodeLearning() {
 
   const handleAIDescribe = () => {
     setExplanationText(null)
-    explainNode.mutate(selectedNode.id, {
-      onSuccess: (data) => setExplanationText(data.explanation),
+    explainNode.mutate({nodeId: selectedNode.id, learnerLevel: level}, {
+      onSuccess: (data) => { setExplanationText(data.explanation); setExplanationMetadata(data.metadata) },
     })
   }
 
@@ -189,8 +209,11 @@ export function NodeLearning() {
 
     void streamChat(
       {
+        conversationId,
         message: nextQuestion,
         context: {
+          nodeId: selectedNode.id,
+          learnerLevel: level,
           node: selectedNode.title,
           stage: selectedNode.breadcrumb.split(' / ')[0],
           progress: `${selectedNode.progress}%`,
@@ -201,10 +224,11 @@ export function NodeLearning() {
           streamedRef.current += delta
           setStreamingText(streamedRef.current)
         },
-        onDone: ({ messageId }) => {
+        onDone: ({ messageId, conversationId: id, metadata }) => {
+          setConversationId(id)
           setMessages((prev) => [
             ...prev,
-            { id: messageId, role: 'assistant', content: streamedRef.current },
+            { id: messageId, role: 'assistant', content: streamedRef.current, metadata },
           ])
           setIsAiReplying(false)
           setStreamingText('')
@@ -269,7 +293,7 @@ export function NodeLearning() {
           </div>
 
           <div className='grid min-h-0 gap-3 xl:flex-1 xl:grid-cols-[270px_minmax(0,1fr)_340px]'>
-            <aside className='flex min-h-0 flex-col rounded-2xl border border-white/10 bg-slate-950/65 p-3 shadow-[0_12px_30px_rgba(15,23,42,0.42)] backdrop-blur-sm'>
+            <aside className='flex min-h-0 flex-col overflow-y-auto rounded-2xl border border-white/10 bg-slate-950/65 p-3 shadow-[0_12px_30px_rgba(15,23,42,0.42)] backdrop-blur-sm'>
               <div className='mb-2 flex items-center justify-between'>
                 <h2 className='text-sm font-semibold uppercase tracking-[0.18em] text-slate-300'>
                   节点学习
@@ -426,6 +450,7 @@ export function NodeLearning() {
                     {explanationText && (
                       <div className='mt-3 rounded-2xl border border-violet-500/20 bg-violet-500/8 p-3 text-xs leading-5 text-violet-100'>
                         {explanationText}
+                        <CompanionEvidence metadata={explanationMetadata} />
                       </div>
                     )}
                   </div>
@@ -509,7 +534,9 @@ export function NodeLearning() {
               </div>
 
               <div className='mt-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-2.5 text-xs leading-5 text-slate-300'>
-                <p>你好，我是你的遥感学习助手。</p>
+                <p>你好，我是小遇，你的遥感学习助手。</p>
+                <label className='mt-2 block'>讲解深度：<select aria-label='讲解深度' value={level} disabled={isAiReplying} onChange={e => setLevel(e.target.value as 'beginner' | 'advanced')} className='rounded bg-slate-800 p-1'><option value='beginner'>入门</option><option value='advanced'>进阶</option></select></label>
+                {conversationId && <Button size='sm' variant='outline' className='mt-2' disabled={isAiReplying} onClick={() => navigate({to:'/ai-assistant', search:{conversationId}})}>在完整助手中继续</Button>}
                 <p className='mt-2'>如果你对当前知识点有疑问，可以直接问我。</p>
                 <p className='mt-2'>当前主题：{selectedNode.title}</p>
               </div>
@@ -528,8 +555,9 @@ export function NodeLearning() {
                 ))}
               </div>
 
-              <div className='mt-3 flex min-h-0 flex-1 flex-col rounded-2xl border border-slate-800 bg-slate-950/40 p-3'>
-                <div className='min-h-0 flex-1 space-y-3 overflow-y-auto pr-1'>
+              <div className='mt-3 flex min-h-[320px] shrink-0 flex-1 flex-col rounded-2xl border border-slate-800 bg-slate-950/40 p-3'>
+                <p className='mb-2 shrink-0 text-xs font-medium text-violet-200'>小遇的回答</p>
+                <div ref={answerListRef} role='log' aria-label='小遇的回答' className='h-60 min-h-[220px] flex-1 space-y-3 overflow-y-auto pr-1'>
                   {messages.map((message) => (
                     <div
                       key={message.id}
@@ -541,6 +569,7 @@ export function NodeLearning() {
                       )}
                     >
                       {message.content}
+                      <CompanionEvidence metadata={message.metadata} />
                     </div>
                   ))}
 

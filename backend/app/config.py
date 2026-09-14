@@ -28,10 +28,11 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_hours: int = 24
 
-    # LLM（OpenAI 兼容；LLM_API_KEY 为空时自动使用内置 Mock 回复）
-    llm_base_url: str = "https://api.deepseek.com/v1"
+    # LLM（OpenAI 兼容；LLM_API_KEY 为空时节点伴学展示固定摘要）
+    llm_base_url: str = "https://api.deepseek.com"
     llm_api_key: str = ""
-    llm_model: str = "deepseek-chat"
+    llm_model: str = "deepseek-v4-flash"
+    rag_index_path: str = ""
     llm_timeout_seconds: float = 60.0
 
     # CORS（开发环境前端地址）
