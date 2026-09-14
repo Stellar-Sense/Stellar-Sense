@@ -1,21 +1,17 @@
 import { useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
-import {
-  ArrowRight,
-  CheckCircle2,
-  Clock3,
-  History,
-  LockKeyhole,
-  RefreshCw,
-  Route,
-  Target,
-} from 'lucide-react'
+import { Clock3, History, RefreshCw, Route, Target } from 'lucide-react'
 import { toast } from 'sonner'
 import { t, useLocale } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { LearningPage, panelClass } from '@/components/learning-page'
-import { useLearningEvent } from '@/features/node-learning/assessment-api'
 import {
   usePathHistory,
   usePathPlan,
@@ -24,20 +20,21 @@ import {
   useUpdateGoal,
   type Goal,
   type GraphNode,
-  type PathEntry,
   type PathPlanPayload,
 } from './adaptive-api'
-
-const difficultyLabels = ['', '基础练习', '分步练习', '综合练习']
+import { PathConstellation } from './path-constellation'
+import { PathNodeDialog } from './path-node-dialog'
 
 function GoalEditor({
   goal,
   nodes,
   suggestion,
+  onSaved,
 }: {
   goal: Goal
   nodes: GraphNode[]
   suggestion?: PathPlanPayload['profileSuggestion']
+  onSaved?: () => void
 }) {
   useLocale((state) => state.locale)
 
@@ -52,7 +49,12 @@ function GoalEditor({
         event.preventDefault()
         update.mutate(
           { nodeIds: selected, dailyMinutes: minutes },
-          { onSuccess: () => toast.success(t('目标与学习时间已保存')) }
+          {
+            onSuccess: () => {
+              toast.success(t('目标与学习时间已保存'))
+              onSaved?.()
+            },
+          }
         )
       }}
     >
@@ -167,159 +169,66 @@ function GoalEditor({
   )
 }
 
-function EntryCard({
-  entry,
-  readOnly = false,
-}: {
-  entry: PathEntry
-  readOnly?: boolean
-}) {
-  useLocale((state) => state.locale)
-
-  const navigate = useNavigate()
-  const record = useLearningEvent()
-  return (
-    <article
-      className={`rounded-xl border p-4 ${entry.status === 'ready' ? 'border-sky-500/30 bg-sky-500/5' : 'border-white/10 bg-white/[0.02]'}`}
-    >
-      <div className='flex flex-wrap items-start justify-between gap-3'>
-        <div>
-          <p className='mb-1 text-xs text-slate-400'>
-            {entry.domain} · {entry.isGoal ? t('目标节点') : t('先修补学')}
-            {entry.isReview ? t(' · 复习巩固') : ''}
-          </p>
-          <h3 className='font-medium'>{entry.name}</h3>
-        </div>
-        <span
-          className={`flex items-center gap-1 text-xs ${entry.status === 'ready' ? 'text-sky-300' : 'text-amber-200'}`}
-        >
-          {entry.status === 'ready' ? (
-            <CheckCircle2 className='size-3.5' />
-          ) : (
-            <LockKeyhole className='size-3.5' />
-          )}
-          {entry.status === 'ready' ? t('可立即学习') : t('等待前置达标')}
-        </span>
-      </div>
-      <div className='my-3 flex flex-wrap gap-3 text-xs text-slate-300'>
-        <span>
-          {t('掌握度')}
-          {entry.mastery}%
-        </span>
-        <span>
-          {t('置信度')}
-          {entry.confidence}%
-        </span>
-        <span>{t(difficultyLabels[entry.difficulty])}</span>
-        <span>
-          {entry.minutes}
-          {t('分钟')}
-        </span>
-      </div>
-      <ul className='space-y-1 text-xs leading-5 text-slate-400'>
-        {entry.reasons.map((reason) => (
-          <li key={reason}>• {reason}</li>
-        ))}
-      </ul>
-      <p className='mt-3 text-xs text-violet-300'>
-        {entry.sessions
-          .map((session) =>
-            t('第 {0} 天 · {1} 分钟', session.day, session.minutes)
-          )
-          .join(' / ')}
-      </p>
-      {entry.taskTitle && (
-        <p className='mt-2 text-xs text-slate-300'>
-          {t('评价任务：')}
-          {entry.taskTitle}
-        </p>
-      )}
-      {!readOnly && (
-        <div className='mt-4 flex gap-2'>
-          <Button
-            size='sm'
-            disabled={entry.status !== 'ready' || record.isPending}
-            onClick={() =>
-              record.mutate(
-                {
-                  requestId: crypto.randomUUID(),
-                  nodeId: entry.nodeId,
-                  kind: 'accept',
-                },
-                {
-                  onSuccess: () =>
-                    navigate({
-                      to: '/node-learning',
-                      search: { nodeId: entry.nodeId },
-                    }),
-                }
-              )
-            }
-          >
-            {t('开始学习')}
-            <ArrowRight className='ml-1 size-3.5' />
-          </Button>
-          <Button
-            variant='ghost'
-            size='sm'
-            disabled={record.isPending}
-            onClick={() =>
-              record.mutate(
-                {
-                  requestId: crypto.randomUUID(),
-                  nodeId: entry.nodeId,
-                  kind: 'skip',
-                },
-                {
-                  onSuccess: () =>
-                    toast.success(t('已记录跳过偏好，必要先修仍会保留')),
-                }
-              )
-            }
-          >
-            {t('暂时跳过')}
-          </Button>
-        </div>
-      )}
-    </article>
-  )
-}
-
 export function PathPlanning() {
-  useLocale((state) => state.locale)
-
+  const en = useLocale((state) => state.locale) === 'en'
   const plan = usePathPlan()
   const history = usePathHistory()
   const regenerate = useRegeneratePath()
   const [version, setVersion] = useState<number | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [goalsOpen, setGoalsOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const replay = usePathReplay(version)
   const data = plan.data
+  const showing = version !== null ? replay.data?.result : data
+  const showingGoal = version !== null ? replay.data?.goal : data?.goal
+  const nextId =
+    showing?.nextNodeId ??
+    showing?.entries.find((entry) => entry.status === 'ready')?.nodeId ??
+    null
+  const currentView = () => {
+    setVersion(null)
+    setSelectedId(null)
+  }
   return (
     <LearningPage
       title={t('学习路径')}
-      description={t(
-        '从你的目标出发，依据先修关系与学习证据安排补学、练习和复习。目标或证据变化后，路径会重新计算。'
-      )}
       actions={
-        <Button
-          variant='outline'
-          disabled={regenerate.isPending || !data}
-          onClick={() =>
-            regenerate.mutate(undefined, {
-              onSuccess: (result) =>
-                toast.success(
-                  result.changed
-                    ? t('已生成第 {0} 版路径', result.version)
-                    : t('当前安排仍然适用，沿用原版本')
-                ),
-            })
-          }
-        >
-          <RefreshCw
-            className={`mr-2 size-4 ${regenerate.isPending ? 'animate-spin' : ''}`}
-          />
-          {t('重新规划')}
-        </Button>
+        <div className='flex flex-wrap gap-2'>
+          <Button
+            variant='outline'
+            onClick={() => setGoalsOpen(true)}
+            disabled={!data}
+          >
+            <Target className='mr-2 size-4' />
+            {en ? 'Adjust goals' : '调整目标'}
+          </Button>
+          <Button variant='outline' onClick={() => setHistoryOpen(true)}>
+            <History className='mr-2 size-4' />
+            {en ? 'Route history' : '历史路线'}
+          </Button>
+          <Button
+            variant='outline'
+            disabled={regenerate.isPending || plan.isFetching || !data}
+            onClick={() =>
+              regenerate.mutate(undefined, {
+                onSuccess: (result) => {
+                  currentView()
+                  toast.success(
+                    result.changed
+                      ? t('已生成第 {0} 版路径', result.version)
+                      : t('当前安排仍然适用，沿用原版本')
+                  )
+                },
+              })
+            }
+          >
+            <RefreshCw
+              className={`mr-2 size-4 ${regenerate.isPending ? 'animate-spin' : ''}`}
+            />
+            {t('重新规划')}
+          </Button>
+        </div>
       }
     >
       {plan.isPending ? (
@@ -334,159 +243,158 @@ export function PathPlanning() {
       ) : (
         data && (
           <>
-            <div className='grid gap-3 sm:grid-cols-3'>
-              {[
-                {
-                  icon: Route,
-                  label: '当前路径',
-                  value: t('第 {0} 版', data.version),
-                },
-                {
-                  icon: CheckCircle2,
-                  label: '已达标 / 目标及先修节点',
-                  value: `${data.completedNodeIds.length} / ${data.completedNodeIds.length + data.entries.length}`,
-                },
-                {
-                  icon: Clock3,
-                  label: '按当前预算预计',
-                  value: t(
-                    '{0} 分钟 · {1} 天',
-                    data.totalMinutes,
-                    data.estimatedDays
-                  ),
-                },
-              ].map(({ icon: Icon, label, value }) => (
-                <div key={label} className={panelClass}>
-                  <Icon className='mb-3 size-5 text-sky-300' />
-                  <p className='text-xs text-slate-400'>{t(label)}</p>
-                  <p className='mt-2 text-xl font-semibold'>{value}</p>
-                </div>
-              ))}
-            </div>
-            <div className='grid items-start gap-5 xl:grid-cols-[340px_1fr]'>
-              <div className='space-y-5'>
-                <GoalEditor
-                  key={data.goal.version}
-                  goal={data.goal}
-                  nodes={data.nodes}
-                  suggestion={data.profileSuggestion}
-                />
-                <section className={panelClass}>
-                  <h2 className='flex items-center gap-2 font-semibold'>
-                    <History className='size-4 text-violet-300' />
-                    {t('路径版本')}
-                  </h2>
-                  <p className='my-2 text-xs leading-5 text-slate-400'>
-                    {t(
-                      '只有安排发生变化才保存新版本。查看历史不会覆盖当前路径。'
-                    )}
-                  </p>
-                  {history.isError && (
-                    <p role='alert' className='text-sm'>
-                      {t('版本记录加载失败。')}
-                    </p>
-                  )}
-                  <div className='max-h-80 space-y-2 overflow-y-auto'>
-                    {history.data?.map((item) => (
-                      <button
-                        key={item.version}
-                        className='w-full rounded-lg border border-white/10 p-3 text-left hover:bg-white/5'
-                        onClick={() => setVersion(item.version)}
-                      >
-                        <p className='text-sm'>
-                          {t('第 {0} 版', item.version)}{' '}
-                          <span className='float-right text-xs text-slate-500'>
-                            {new Date(item.createdAt).toLocaleDateString(
-                              useLocale.getState().locale === 'zh'
-                                ? 'zh-CN'
-                                : 'en-US'
-                            )}
-                          </span>
-                        </p>
-                        <p className='mt-1 text-xs text-slate-400'>
-                          {item.trigger}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                </section>
+            {version !== null ? (
+              <div className='flex flex-wrap items-center justify-between gap-3 rounded-xl border border-violet-300/20 bg-violet-300/5 px-4 py-3 text-sm text-violet-200'>
+                <span>
+                  <span className='mr-3'>
+                    {en
+                      ? `Historical route · Version ${version}`
+                      : `历史路径 · 第 ${version} 版`}
+                  </span>
+                  {en
+                    ? 'Viewing a saved route. Your current learning plan is unchanged.'
+                    : '正在查看历史路线，不会改变当前学习安排。'}
+                </span>
+                <Button size='sm' variant='outline' onClick={currentView}>
+                  {t('返回当前路径')}
+                </Button>
               </div>
-              <section className={`${panelClass} space-y-4`}>
-                <div className='flex items-center justify-between gap-3'>
-                  <h2 className='font-semibold'>
-                    {version
-                      ? t('历史路径 · 第 {0} 版', version)
-                      : t('目标与补学路线')}
-                  </h2>
-                  {version && (
-                    <Button
-                      size='sm'
-                      variant='outline'
-                      onClick={() => setVersion(null)}
-                    >
-                      {t('返回当前路径')}
-                    </Button>
-                  )}
-                </div>
-                {version ? (
-                  replay.isPending ? (
-                    <p role='status'>{t('正在回放历史路径…')}</p>
-                  ) : replay.isError ? (
-                    <p role='alert'>{t('回放失败，请重试或返回当前路径。')}</p>
-                  ) : (
-                    replay.data && (
-                      <>
-                        <div className='rounded-xl bg-violet-500/10 p-3 text-xs leading-6 text-violet-200'>
-                          {replay.data.verified
-                            ? t('冻结输入重新计算一致')
-                            : t('当前规则版本无法验证此记录')}{' '}
-                          {t('· 图谱版本')}
-                          {replay.data.graphRevision}
-                          <br />
-                          {replay.data.eventIds.length}
-                          {t('条学习事件 ·')} {replay.data.evaluationIds.length}
-                          {t('条评价 · 每天')} {replay.data.goal.dailyMinutes}
-                          {t('分钟')}
-                          <br />
-                          {replay.data.changes.join('；')}
+            ) : plan.isFetching || regenerate.isPending ? (
+              <p role='status' className='text-xs text-slate-400'>
+                {en ? 'Syncing the latest route…' : '正在同步最新路线…'}
+              </p>
+            ) : null}
+            {version !== null && replay.isPending ? (
+              <p role='status'>{t('正在回放历史路径…')}</p>
+            ) : version !== null && replay.isError ? (
+              <p role='alert'>{t('回放失败，请重试或返回当前路径。')}</p>
+            ) : (
+              showing && (
+                <>
+                  {showing.entries.length > 0 ? (
+                    <PathConstellation
+                      key={version ?? 'current'}
+                      entries={showing.entries}
+                      nextNodeId={nextId}
+                      onSelect={setSelectedId}
+                      selectedId={selectedId}
+                      summary={
+                        <div className='flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-300'>
+                          <span className='flex items-center gap-2'>
+                            <Route className='size-4 text-violet-300' />
+                            {showing?.entries.length ?? '—'}{' '}
+                            {en ? 'stops ahead' : '个待学节点'}
+                          </span>
+                          <span className='flex items-center gap-2'>
+                            <Clock3 className='size-4 text-sky-300' />
+                            {showing
+                              ? t(
+                                  '{0} 分钟 · {1} 天',
+                                  showing.totalMinutes,
+                                  showing.estimatedDays
+                                )
+                              : '—'}
+                          </span>
+                          <span>
+                            {en ? 'Daily budget' : '每天'}{' '}
+                            {showingGoal?.dailyMinutes ?? '—'}{' '}
+                            {en ? 'min' : '分钟'}
+                          </span>
                         </div>
-                        {replay.data.result.entries.map((entry) => (
-                          <EntryCard
-                            key={entry.nodeId}
-                            entry={entry}
-                            readOnly
-                          />
-                        ))}
-                        {replay.data.result.goalReached && (
-                          <p>{t('该版本中的目标已达标。')}</p>
-                        )}
-                      </>
-                    )
-                  )
-                ) : (
-                  <>
-                    {data.goalReached && (
-                      <div className='rounded-xl bg-emerald-500/10 p-5 text-emerald-200'>
-                        {t(
-                          '当前目标已达标。可以选择新的目标，或进入节点学习进行复习。'
-                        )}
-                      </div>
-                    )}
-                    {!data.entries.length && !data.goalReached && (
-                      <p className='text-slate-400'>
-                        {t('还没有可规划的知识节点，请管理员先维护星图。')}
+                      }
+                    />
+                  ) : (
+                    <div className={`${panelClass} py-16 text-center`}>
+                      <Route className='mx-auto mb-4 size-10 text-sky-300' />
+                      <p>
+                        {showing.goalReached
+                          ? en
+                            ? 'This route is complete. Choose a new learning goal when you are ready.'
+                            : '这条路线已完成，可以调整目标，开启下一段学习旅程。'
+                          : t('还没有可规划的知识节点，请管理员先维护星图。')}
                       </p>
-                    )}
-                    {data.entries.map((entry) => (
-                      <EntryCard key={entry.nodeId} entry={entry} />
-                    ))}
-                  </>
-                )}
-              </section>
-            </div>
+                    </div>
+                  )}
+                </>
+              )
+            )}
+            <PathNodeDialog
+              selectedId={selectedId}
+              onClose={() => setSelectedId(null)}
+              entries={showing?.entries ?? []}
+              nodes={version === null ? data.nodes : undefined}
+              nextNodeId={nextId}
+              readOnly={version !== null}
+              syncing={plan.isFetching || regenerate.isPending}
+            />
           </>
         )
       )}
+      <Dialog open={goalsOpen} onOpenChange={setGoalsOpen}>
+        <DialogContent className='max-h-[85svh] overflow-y-auto overscroll-contain rounded-2xl sm:max-w-xl'>
+          <DialogHeader>
+            <DialogTitle>
+              {en ? 'Adjust learning goals' : '调整学习目标'}
+            </DialogTitle>
+            <DialogDescription>
+              {en
+                ? 'Save to update the route across your learning pages.'
+                : '保存后，路线图和学习驾驶舱将同步更新。'}
+            </DialogDescription>
+          </DialogHeader>
+          {data && (
+            <GoalEditor
+              key={JSON.stringify(data.goal)}
+              goal={data.goal}
+              nodes={data.nodes}
+              suggestion={data.profileSuggestion}
+              onSaved={() => {
+                setGoalsOpen(false)
+                currentView()
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+        <DialogContent className='max-h-[85svh] overflow-y-auto overscroll-contain rounded-2xl'>
+          <DialogHeader>
+            <DialogTitle>{en ? 'Route history' : '历史路线'}</DialogTitle>
+            <DialogDescription>
+              {t('只有安排发生变化才保存新版本。查看历史不会覆盖当前路径。')}
+            </DialogDescription>
+          </DialogHeader>
+          {history.isPending && (
+            <p role='status'>{en ? 'Loading…' : '加载中…'}</p>
+          )}
+          {history.isError && <p role='alert'>{t('版本记录加载失败。')}</p>}
+          {history.data?.map((item) => (
+            <button
+              type='button'
+              key={item.version}
+              className='w-full rounded-xl border border-white/10 p-4 text-left hover:bg-sky-400/5'
+              onClick={() => {
+                setSelectedId(null)
+                setVersion(item.version)
+                setHistoryOpen(false)
+              }}
+            >
+              <span className='text-sm'>{t('第 {0} 版', item.version)}</span>
+              <span className='float-right text-xs text-slate-500'>
+                {new Date(item.createdAt).toLocaleDateString(
+                  en ? 'en-US' : 'zh-CN'
+                )}
+              </span>
+              <p className='mt-2 text-xs text-slate-400'>{item.trigger}</p>
+            </button>
+          ))}
+          {history.data?.length === 0 && (
+            <p className='text-sm text-slate-400'>
+              {en ? 'No saved routes yet.' : '还没有历史路线。'}
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
     </LearningPage>
   )
 }

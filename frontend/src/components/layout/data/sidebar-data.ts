@@ -5,7 +5,6 @@ import {
   HelpCircle,
   NotebookPen,
   Compass,
-  Command,
 } from 'lucide-react'
 import { type SidebarData } from '../types'
 
@@ -15,13 +14,6 @@ export const sidebarData: SidebarData = {
     email: 'learner@remote-sensing.ai',
     avatar: '/avatars/shadcn.jpg',
   },
-  teams: [
-    {
-      name: '遥感智能学习平台',
-      logo: Command,
-      plan: '学习计划',
-    },
-  ],
   navGroups: [
     {
       title: '导航',
