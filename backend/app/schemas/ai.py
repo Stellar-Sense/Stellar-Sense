@@ -1,8 +1,10 @@
 """AI 对话相关模型。"""
 
-from app.schemas.common import CamelModel
 from typing import Literal
+
 from pydantic import Field
+
+from app.schemas.common import CamelModel
 
 
 class MessageOut(CamelModel):

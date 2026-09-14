@@ -16,6 +16,8 @@ class KnowledgeNodeOut(CamelModel):
     duration: str
     description: str
     progress: int
+    kind: str = "concept"
+    difficulty: int = 1
 
 
 class KnowledgeEdgeOut(CamelModel):
@@ -27,3 +29,5 @@ class KnowledgeGraphOut(CamelModel):
     nodes: list[KnowledgeNodeOut]
     edges: list[KnowledgeEdgeOut]
     domain_order: list[str]
+    revision: int = 1
+    relations: list[dict] = Field(default_factory=list)

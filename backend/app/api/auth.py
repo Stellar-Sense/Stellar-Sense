@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import get_db
-from app.deps import AuthContext, get_auth_context
+from app.deps import AuthContext, effective_roles, get_auth_context
 from app.models import OtpCode, User, UserAccount, UserPreference, UserProfile
 from app.schemas.auth import (
     AuthUserResponse,
@@ -26,8 +26,8 @@ from app.services.security import create_access_token, hash_password, verify_pas
 router = APIRouter()
 
 
-def _token_response(user: User) -> TokenResponse:
-    role = list(user.role or [])
+async def _token_response(user: User, db: AsyncSession) -> TokenResponse:
+    role = await effective_roles(db, user)
     token, exp = create_access_token(user_id=user.id, account_no=user.account_no, email=user.email, role=role)
     return TokenResponse(account_no=user.account_no, email=user.email, role=role, exp=exp, access_token=token)
 
@@ -39,7 +39,7 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)) -> To
     ).scalar_one_or_none()
     if user is None or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="邮箱或密码不正确")
-    return _token_response(user)
+    return await _token_response(user, db)
 
 
 @router.post("/register", response_model=TokenResponse)
@@ -63,16 +63,18 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
     db.add(UserAccount(user_id=user.id, name=default_name, dob=None, language="zh-CN"))
     db.add(UserPreference(user_id=user.id))
     await db.commit()
-    return _token_response(user)
+    return await _token_response(user, db)
 
 
 @router.get("/me", response_model=AuthUserResponse)
-async def me(context: AuthContext = Depends(get_auth_context)) -> AuthUserResponse:
+async def me(
+    context: AuthContext = Depends(get_auth_context), db: AsyncSession = Depends(get_db)
+) -> AuthUserResponse:
     user = context.user
     return AuthUserResponse(
         account_no=user.account_no,
         email=user.email,
-        role=list(user.role or []),
+        role=await effective_roles(db, user),
         exp=int(context.payload.get("exp", 0)) * 1000,
     )
 

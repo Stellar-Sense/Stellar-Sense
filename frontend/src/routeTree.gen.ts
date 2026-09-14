@@ -26,6 +26,7 @@ import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedPathPlanningIndexRouteImport } from './routes/_authenticated/path-planning/index'
 import { Route as AuthenticatedNodeLearningIndexRouteImport } from './routes/_authenticated/node-learning/index'
 import { Route as AuthenticatedLearningHistoryIndexRouteImport } from './routes/_authenticated/learning-history/index'
+import { Route as AuthenticatedKnowledgeManagementIndexRouteImport } from './routes/_authenticated/knowledge-management/index'
 import { Route as AuthenticatedAiAssistantIndexRouteImport } from './routes/_authenticated/ai-assistant/index'
 import { Route as AuthenticatedSettingsNotificationsRouteImport } from './routes/_authenticated/settings/notifications'
 import { Route as AuthenticatedSettingsDisplayRouteImport } from './routes/_authenticated/settings/display'
@@ -122,6 +123,12 @@ const AuthenticatedLearningHistoryIndexRoute =
     path: '/learning-history/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedKnowledgeManagementIndexRoute =
+  AuthenticatedKnowledgeManagementIndexRouteImport.update({
+    id: '/knowledge-management/',
+    path: '/knowledge-management/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAiAssistantIndexRoute =
   AuthenticatedAiAssistantIndexRouteImport.update({
     id: '/ai-assistant/',
@@ -177,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/settings/display': typeof AuthenticatedSettingsDisplayRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/ai-assistant/': typeof AuthenticatedAiAssistantIndexRoute
+  '/knowledge-management/': typeof AuthenticatedKnowledgeManagementIndexRoute
   '/learning-history/': typeof AuthenticatedLearningHistoryIndexRoute
   '/node-learning/': typeof AuthenticatedNodeLearningIndexRoute
   '/path-planning/': typeof AuthenticatedPathPlanningIndexRoute
@@ -200,6 +208,7 @@ export interface FileRoutesByTo {
   '/settings/display': typeof AuthenticatedSettingsDisplayRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/ai-assistant': typeof AuthenticatedAiAssistantIndexRoute
+  '/knowledge-management': typeof AuthenticatedKnowledgeManagementIndexRoute
   '/learning-history': typeof AuthenticatedLearningHistoryIndexRoute
   '/node-learning': typeof AuthenticatedNodeLearningIndexRoute
   '/path-planning': typeof AuthenticatedPathPlanningIndexRoute
@@ -226,6 +235,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/display': typeof AuthenticatedSettingsDisplayRoute
   '/_authenticated/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/_authenticated/ai-assistant/': typeof AuthenticatedAiAssistantIndexRoute
+  '/_authenticated/knowledge-management/': typeof AuthenticatedKnowledgeManagementIndexRoute
   '/_authenticated/learning-history/': typeof AuthenticatedLearningHistoryIndexRoute
   '/_authenticated/node-learning/': typeof AuthenticatedNodeLearningIndexRoute
   '/_authenticated/path-planning/': typeof AuthenticatedPathPlanningIndexRoute
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/settings/display'
     | '/settings/notifications'
     | '/ai-assistant/'
+    | '/knowledge-management/'
     | '/learning-history/'
     | '/node-learning/'
     | '/path-planning/'
@@ -275,6 +286,7 @@ export interface FileRouteTypes {
     | '/settings/display'
     | '/settings/notifications'
     | '/ai-assistant'
+    | '/knowledge-management'
     | '/learning-history'
     | '/node-learning'
     | '/path-planning'
@@ -300,6 +312,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/display'
     | '/_authenticated/settings/notifications'
     | '/_authenticated/ai-assistant/'
+    | '/_authenticated/knowledge-management/'
     | '/_authenticated/learning-history/'
     | '/_authenticated/node-learning/'
     | '/_authenticated/path-planning/'
@@ -441,6 +454,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLearningHistoryIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/knowledge-management/': {
+      id: '/_authenticated/knowledge-management/'
+      path: '/knowledge-management'
+      fullPath: '/knowledge-management/'
+      preLoaderRoute: typeof AuthenticatedKnowledgeManagementIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ai-assistant/': {
       id: '/_authenticated/ai-assistant/'
       path: '/ai-assistant'
@@ -514,6 +534,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedAiAssistantIndexRoute: typeof AuthenticatedAiAssistantIndexRoute
+  AuthenticatedKnowledgeManagementIndexRoute: typeof AuthenticatedKnowledgeManagementIndexRoute
   AuthenticatedLearningHistoryIndexRoute: typeof AuthenticatedLearningHistoryIndexRoute
   AuthenticatedNodeLearningIndexRoute: typeof AuthenticatedNodeLearningIndexRoute
   AuthenticatedPathPlanningIndexRoute: typeof AuthenticatedPathPlanningIndexRoute
@@ -525,6 +546,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
   AuthenticatedAiAssistantIndexRoute: AuthenticatedAiAssistantIndexRoute,
+  AuthenticatedKnowledgeManagementIndexRoute:
+    AuthenticatedKnowledgeManagementIndexRoute,
   AuthenticatedLearningHistoryIndexRoute:
     AuthenticatedLearningHistoryIndexRoute,
   AuthenticatedNodeLearningIndexRoute: AuthenticatedNodeLearningIndexRoute,

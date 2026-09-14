@@ -9,6 +9,7 @@ import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { useKnowledgeGraph } from './api'
+import { FloatingPanel } from './floating-panel'
 import {
   domainOrder,
   getDomainTheme,
@@ -17,7 +18,6 @@ import {
   type KnowledgeNode,
   type NodeStatus,
 } from './graph-data'
-import { FloatingPanel } from './floating-panel'
 import { StarMap2D } from './star-map-2d'
 import { buildStarMapLayout } from './star-map-layout'
 
@@ -57,10 +57,7 @@ export function KnowledgeGraph() {
     [nodes]
   )
 
-  const layout = useMemo(
-    () => buildStarMapLayout(nodes, edges),
-    [nodes, edges]
-  )
+  const layout = useMemo(() => buildStarMapLayout(nodes, edges), [nodes, edges])
 
   const selectedNode = selectedNodeId ? (nodeMap[selectedNodeId] ?? null) : null
 
@@ -214,6 +211,7 @@ export function KnowledgeGraph() {
                 }
               >
                 <StarMap3D
+                  key={data?.revision}
                   layout={layout}
                   nodes={nodes}
                   nodeMap={nodeMap}
@@ -227,6 +225,7 @@ export function KnowledgeGraph() {
               </Suspense>
             ) : (
               <StarMap2D
+                key={data?.revision}
                 nodes={nodes}
                 edges={edges}
                 selectedNodeId={selectedNodeId}
@@ -275,7 +274,7 @@ export function KnowledgeGraph() {
                   Domains
                 </div>
                 <div className='mt-2 flex flex-wrap gap-x-3 gap-y-1.5'>
-                  {domainOrder.map((domain) => (
+                  {(data?.domainOrder ?? domainOrder).map((domain) => (
                     <span
                       key={domain}
                       className='flex items-center gap-1.5 text-[11px] text-slate-300'
@@ -323,9 +322,7 @@ export function KnowledgeGraph() {
                 <dl className='space-y-2.5 text-sm text-slate-300'>
                   <div>
                     <dt className='text-slate-400'>知识节点</dt>
-                    <dd className='mt-1 text-slate-100'>
-                      {selectedNode.name}
-                    </dd>
+                    <dd className='mt-1 text-slate-100'>{selectedNode.name}</dd>
                   </div>
                   <div>
                     <dt className='text-slate-400'>学习状态</dt>
@@ -343,7 +340,9 @@ export function KnowledgeGraph() {
                     <dt className='text-slate-400'>前置知识</dt>
                     <dd className='mt-1 text-slate-100'>
                       {selectedNode.prerequisites.length > 0
-                        ? selectedNode.prerequisites.join(' · ')
+                        ? selectedNode.prerequisites
+                            .map((id) => nodeMap[id]?.name ?? id)
+                            .join(' · ')
                         : '无'}
                     </dd>
                   </div>

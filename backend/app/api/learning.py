@@ -1,6 +1,5 @@
 """节点学习与学习记录接口。"""
 
-from datetime import datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -12,8 +11,6 @@ from app.deps import get_current_user
 from app.models import (
     LearningNode,
     User,
-    UserKnowledgeProgress,
-    UserLearningProgress,
 )
 from app.schemas.learning import (
     CompleteNodeOut,
@@ -90,40 +87,9 @@ async def complete_node(
 ) -> CompleteNodeOut:
     await _get_node_or_404(db, node_id)
     nodes, progress = await progress_service.load_learning_state(db, user.id)
+    if node_id not in progress or not progress[node_id].completed:
+        raise HTTPException(409, "请完成节点学习评价；阅读或手动标记不能代替掌握证据")
     sequence = [node.id for node in nodes]
-    now = datetime.now()
-
-    row = progress.get(node_id)
-    if row is None:
-        row = UserLearningProgress(
-            user_id=user.id,
-            node_id=node_id,
-            completed=True,
-            progress=100,
-            completed_at=now,
-        )
-        db.add(row)
-        progress[node_id] = row
-    else:
-        row.completed = True
-        row.progress = 100
-        row.completed_at = row.completed_at or now
-        row.updated_at = now
-
-    # 与知识图谱联动：同名节点标记为已掌握
-    knowledge_row = (
-        await db.execute(
-            select(UserKnowledgeProgress).where(
-                UserKnowledgeProgress.user_id == user.id,
-                UserKnowledgeProgress.node_id == node_id,
-            )
-        )
-    ).scalar_one_or_none()
-    if knowledge_row is None:
-        db.add(UserKnowledgeProgress(user_id=user.id, node_id=node_id, status="mastered", progress=100))
-    else:
-        knowledge_row.status = "mastered"
-        knowledge_row.progress = 100
     await db.commit()
 
     statuses, current_id = progress_service.learning_status_map(nodes, progress)
