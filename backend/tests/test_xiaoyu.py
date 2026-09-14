@@ -3,7 +3,8 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from app.services.xiaoyu import CompanionService
+from app.services.xiaoyu import CompanionService, SummaryRetriever, NODE_SECTIONS
+from app.config import BASE_DIR
 
 
 class Retriever:
@@ -23,6 +24,29 @@ class Generator:
     async def generate(self, messages):
         return json.dumps({"answer": "测试回答", "cited_chunk_ids": self.ids,
                            "suggested_action": "测试建议"})
+
+
+class BundledIndexTests(unittest.TestCase):
+    def test_default_index_covers_mapped_nodes(self):
+        with patch("app.services.xiaoyu.settings", SimpleNamespace(rag_index_path="")):
+            for node in NODE_SECTIONS:
+                with self.subTest(node=node):
+                    self.assertTrue(SummaryRetriever().retrieve("解释这个知识点", node))
+            self.assertEqual(SummaryRetriever().retrieve("问题", "图像增强"), [])
+
+    def test_relative_override_resolves_from_backend(self):
+        with patch("app.services.xiaoyu.settings", SimpleNamespace(rag_index_path="data/knowledge.json")):
+            chunks = SummaryRetriever().retrieve("辐射定标", "辐射校正")
+        self.assertTrue(chunks)
+        self.assertTrue(all(c["evidenceKind"] == "summary" for c in chunks))
+
+    def test_bundled_index_integrity(self):
+        data = json.loads((BASE_DIR / "data/knowledge.json").read_text())
+        self.assertEqual(len(data["nodes"]), 579)
+        self.assertEqual(len({r["node_id"] for r in data["nodes"]}), 579)
+        for row in data["nodes"]:
+            for field in ("node_id", "node_name", "text", "source_document", "source_locator", "original_resource_hint"):
+                self.assertIn(field, row)
 
 
 class CompanionTests(unittest.IsolatedAsyncioTestCase):

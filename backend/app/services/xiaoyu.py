@@ -1,4 +1,4 @@
-"""确定性伴学工作流：映射/检索 → 分层提示 → 千问 → 校验引用。"""
+"""确定性伴学工作流：映射/检索 → 分层提示 → 模型 → 校验引用。"""
 import json
 import re
 from pathlib import Path
@@ -6,10 +6,10 @@ from pathlib import Path
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.config import settings
+from app.config import BASE_DIR, settings
 from app.services.xiaoyu_policy import explanation_policy
 
-# 现有网页节点较粗，映射到星图小节；未映射时明确返回当前页固定摘要。
+# 现有网页节点较粗，映射到星图小节；未映射时提供明确标注的模型讲解。
 NODE_SECTIONS = {
     "遥感概论": ("0.1.", "0.3."), "电磁波与遥感": ("1.1.", "1.2."),
     "遥感传感器": ("3.1.", "3.2.", "3.3."), "遥感成像原理": ("3.3.", "3.4."),
@@ -28,9 +28,10 @@ class Generated(BaseModel):
 class SummaryRetriever:
     """B组可替换retrieve；不将个人绝对路径传给模型或前端。"""
     def retrieve(self, question, node_id, limit=4):
-        if not settings.rag_index_path:
-            return []
-        rows = json.loads(Path(settings.rag_index_path).read_text(encoding="utf-8"))["nodes"]
+        index_path = Path(settings.rag_index_path) if settings.rag_index_path.strip() else BASE_DIR / "data" / "knowledge.json"
+        if not index_path.is_absolute():
+            index_path = BASE_DIR / index_path
+        rows = json.loads(index_path.read_text(encoding="utf-8"))["nodes"]
         prefixes = NODE_SECTIONS.get(node_id, ())
         candidates = [r for r in rows if r["node_id"].startswith(prefixes)]
         terms = set(re.findall(r"[\u4e00-\u9fff]{2}", question))
