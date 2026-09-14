@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useSearch, useNavigate } from '@tanstack/react-router'
-import { toast } from 'sonner'
 import {
   ArrowLeft,
   ArrowRight,
@@ -14,24 +13,20 @@ import {
   Sparkles,
   Target,
 } from 'lucide-react'
+import { toast } from 'sonner'
+import { streamChat, type CompanionMetadata } from '@/lib/chat-stream'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { CompanionEvidence } from '@/components/companion-evidence'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { CompanionEvidence } from '@/components/companion-evidence'
-import { streamChat, type CompanionMetadata } from '@/lib/chat-stream'
-import { cn } from '@/lib/utils'
-
-import {
-  useCompleteNode,
-  useExplainNode,
-  useLearningNode,
-  useLearningNodes,
-} from './api'
+import { useExplainNode, useLearningNode, useLearningNodes } from './api'
+import { NodeAssessment } from './assessment'
 
 type NodeStatus = 'done' | 'current' | 'todo'
 
@@ -42,8 +37,11 @@ type ChatMessage = {
   metadata?: CompanionMetadata
 }
 
-
-const quickQuestions = ['这个我没懂，能简单解释一下吗？', '这个知识点有哪些容易混淆的地方？', '请根据资料给我一个自测建议。']
+const quickQuestions = [
+  '这个我没懂，能简单解释一下吗？',
+  '这个知识点有哪些容易混淆的地方？',
+  '请根据资料给我一个自测建议。',
+]
 
 const statusClassMap: Record<NodeStatus, string> = {
   done: 'border-emerald-400/30 bg-emerald-500/8 text-emerald-200',
@@ -62,7 +60,8 @@ export function NodeLearning() {
   const navigate = useNavigate()
   const [conversationId, setConversationId] = useState<string | undefined>()
   const [level, setLevel] = useState<'beginner' | 'advanced'>('beginner')
-  const [explanationMetadata, setExplanationMetadata] = useState<CompanionMetadata>()
+  const [explanationMetadata, setExplanationMetadata] =
+    useState<CompanionMetadata>()
 
   const { nodeId: requestedNodeId } = useSearch({
     from: '/_authenticated/node-learning/',
@@ -74,7 +73,8 @@ export function NodeLearning() {
     {
       id: 1,
       role: 'assistant',
-      content: '你好，我是你的遥感学习助手。如果你对当前节点有疑问，可以直接问我。',
+      content:
+        '你好，我是你的遥感学习助手。如果你对当前节点有疑问，可以直接问我。',
     },
   ])
   const [chatInput, setChatInput] = useState('')
@@ -87,9 +87,9 @@ export function NodeLearning() {
     const list = answerListRef.current
     if (list) list.scrollTop = list.scrollHeight
   }, [messages, streamingText, isAiReplying])
+  const assessmentRef = useRef<HTMLDivElement | null>(null)
 
   const { data: overview } = useLearningNodes()
-  const completeNode = useCompleteNode()
   const explainNode = useExplainNode()
 
   const nodeStatuses = useMemo(() => {
@@ -107,7 +107,7 @@ export function NodeLearning() {
     if (overview && selectedNodeId && nodeStatuses[selectedNodeId]) {
       return selectedNodeId
     }
-    return overview?.currentNodeId ?? null
+    return overview?.currentNodeId ?? overview?.sequence[0] ?? null
   }, [nodeStatuses, overview, selectedNodeId])
 
   const { data: selectedNode } = useLearningNode(effectiveNodeId)
@@ -173,25 +173,23 @@ export function NodeLearning() {
   }
 
   const handleMarkCompleted = () => {
-    if (isAiReplying) return
-    setConversationId(undefined)
-    setMessages([])
-    completeNode.mutate(selectedNode.id, {
-      onSuccess: (result) => {
-        toast.success(`已完成 ${selectedNode.title}`)
-        if (result.nextNodeId) {
-          setSelectedNodeId(result.nextNodeId)
-        }
-        setExplanationText(null)
-      },
+    assessmentRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
     })
   }
 
   const handleAIDescribe = () => {
     setExplanationText(null)
-    explainNode.mutate({nodeId: selectedNode.id, learnerLevel: level}, {
-      onSuccess: (data) => { setExplanationText(data.explanation); setExplanationMetadata(data.metadata) },
-    })
+    explainNode.mutate(
+      { nodeId: selectedNode.id, learnerLevel: level },
+      {
+        onSuccess: (data) => {
+          setExplanationText(data.explanation)
+          setExplanationMetadata(data.metadata)
+        },
+      }
+    )
   }
 
   const handleSendMessage = (customQuestion?: string) => {
@@ -228,7 +226,12 @@ export function NodeLearning() {
           setConversationId(id)
           setMessages((prev) => [
             ...prev,
-            { id: messageId, role: 'assistant', content: streamedRef.current, metadata },
+            {
+              id: messageId,
+              role: 'assistant',
+              content: streamedRef.current,
+              metadata,
+            },
           ])
           setIsAiReplying(false)
           setStreamingText('')
@@ -261,8 +264,8 @@ export function NodeLearning() {
         className='relative overflow-hidden px-4 py-3 md:px-5 md:py-4'
       >
         <div className='pointer-events-none absolute inset-0 overflow-hidden'>
-          <div className='absolute -left-8 top-6 h-52 w-52 rounded-full bg-sky-500/10 blur-3xl' />
-          <div className='absolute right-8 top-10 h-64 w-64 rounded-full bg-violet-500/10 blur-3xl' />
+          <div className='absolute top-6 -left-8 h-52 w-52 rounded-full bg-sky-500/10 blur-3xl' />
+          <div className='absolute top-10 right-8 h-64 w-64 rounded-full bg-violet-500/10 blur-3xl' />
           <div className='absolute bottom-6 left-1/3 h-52 w-52 rounded-full bg-cyan-400/8 blur-3xl' />
         </div>
 
@@ -270,7 +273,7 @@ export function NodeLearning() {
           <div className='shrink-0 rounded-2xl border border-white/10 bg-slate-950/65 px-4 py-2.5 shadow-[0_12px_30px_rgba(15,23,42,0.42)] backdrop-blur-sm'>
             <div className='flex flex-wrap items-center justify-between gap-2'>
               <div className='flex min-w-0 flex-wrap items-center gap-3'>
-                <span className='inline-flex shrink-0 items-center gap-1.5 rounded-full border border-sky-400/20 bg-sky-500/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-sky-200'>
+                <span className='inline-flex shrink-0 items-center gap-1.5 rounded-full border border-sky-400/20 bg-sky-500/10 px-2.5 py-1 text-[10px] font-medium tracking-[0.2em] text-sky-200 uppercase'>
                   <BookOpen className='h-3 w-3' />
                   节点学习
                 </span>
@@ -280,7 +283,7 @@ export function NodeLearning() {
               </div>
 
               <div className='flex flex-wrap items-center gap-2'>
-                <div className='inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-violet-200'>
+                <div className='inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-1 text-[10px] font-medium tracking-[0.16em] text-violet-200 uppercase'>
                   <Sparkles className='h-3 w-3' />
                   学习进度 {selectedNode.progress}%
                 </div>
@@ -295,7 +298,7 @@ export function NodeLearning() {
           <div className='grid min-h-0 gap-3 xl:flex-1 xl:grid-cols-[270px_minmax(0,1fr)_340px]'>
             <aside className='flex min-h-0 flex-col overflow-y-auto rounded-2xl border border-white/10 bg-slate-950/65 p-3 shadow-[0_12px_30px_rgba(15,23,42,0.42)] backdrop-blur-sm'>
               <div className='mb-2 flex items-center justify-between'>
-                <h2 className='text-sm font-semibold uppercase tracking-[0.18em] text-slate-300'>
+                <h2 className='text-sm font-semibold tracking-[0.18em] text-slate-300 uppercase'>
                   节点学习
                 </h2>
                 <span className='rounded-full border border-slate-700 bg-slate-900/60 px-2 py-1 text-[10px] text-slate-300'>
@@ -304,10 +307,12 @@ export function NodeLearning() {
               </div>
 
               <div className='mb-2.5 rounded-2xl border border-slate-800 bg-slate-900/50 p-2.5'>
-                <div className='text-[10px] uppercase tracking-[0.18em] text-slate-400'>
+                <div className='text-[10px] tracking-[0.18em] text-slate-400 uppercase'>
                   遥感影像处理
                 </div>
-                <div className='mt-1 text-xs text-slate-200'>学习进度：{currentProgress}%</div>
+                <div className='mt-1 text-xs text-slate-200'>
+                  学习进度：{currentProgress}%
+                </div>
                 <div className='mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-800'>
                   <div
                     className='h-full rounded-full bg-gradient-to-r from-violet-500 to-sky-400'
@@ -319,7 +324,7 @@ export function NodeLearning() {
               <div className='min-h-0 flex-1 space-y-2 overflow-y-auto pr-1'>
                 {groups.map((group) => (
                   <div key={group.group} className='space-y-2'>
-                    <div className='px-2 text-[10px] font-medium uppercase tracking-[0.18em] text-slate-400'>
+                    <div className='px-2 text-[10px] font-medium tracking-[0.18em] text-slate-400 uppercase'>
                       {group.group}
                     </div>
                     <div className='space-y-1.5'>
@@ -338,7 +343,8 @@ export function NodeLearning() {
                               isSelected
                                 ? 'border-violet-400/40 bg-violet-500/10'
                                 : 'border-slate-800 bg-slate-900/30 hover:border-slate-700 hover:bg-slate-900/45',
-                              isCurrent && 'border-violet-400/40 bg-violet-500/10'
+                              isCurrent &&
+                                'border-violet-400/40 bg-violet-500/10'
                             )}
                           >
                             <span
@@ -347,7 +353,13 @@ export function NodeLearning() {
                                 statusClassMap[status]
                               )}
                             >
-                              {status === 'done' ? <Check className='h-3 w-3' /> : status === 'current' ? '●' : '○'}
+                              {status === 'done' ? (
+                                <Check className='h-3 w-3' />
+                              ) : status === 'current' ? (
+                                '●'
+                              ) : (
+                                '○'
+                              )}
                             </span>
                             <span
                               className={cn(
@@ -371,21 +383,23 @@ export function NodeLearning() {
                 <CardHeader className='shrink-0 px-4 pt-3.5 pb-2'>
                   <div className='flex flex-wrap items-center justify-between gap-2'>
                     <div className='min-w-0'>
-                      <div className='truncate text-[10px] font-medium uppercase tracking-[0.2em] text-sky-200'>
+                      <div className='truncate text-[10px] font-medium tracking-[0.2em] text-sky-200 uppercase'>
                         {selectedNode.breadcrumb}
                       </div>
                       <CardTitle className='mt-1 text-lg font-bold text-white'>
                         {selectedNode.title}
                       </CardTitle>
                     </div>
-                    <div className='inline-flex items-center rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-violet-200'>
+                    <div className='inline-flex items-center rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-1 text-[10px] font-medium tracking-[0.16em] text-violet-200 uppercase'>
                       本节学习进度 {selectedNode.progress}%
                     </div>
                   </div>
                 </CardHeader>
 
                 <CardContent className='min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-3.5'>
-                  <p className='text-sm text-slate-300'>{selectedNode.summary}</p>
+                  <p className='text-sm text-slate-300'>
+                    {selectedNode.summary}
+                  </p>
 
                   <div className='rounded-2xl border border-slate-800 bg-slate-900/60 p-3'>
                     <div className='flex items-center gap-2 text-sm font-medium text-slate-200'>
@@ -474,13 +488,19 @@ export function NodeLearning() {
                         <div className='relative h-28 overflow-hidden rounded-xl border border-slate-800 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.26),transparent_28%),radial-gradient(circle_at_70%_30%,rgba(168,85,247,0.30),transparent_26%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(17,24,39,0.88),rgba(15,118,110,0.35))]'>
                           <div className='absolute inset-0 bg-[linear-gradient(rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.08)_1px,transparent_1px)] bg-[size:24px_24px]' />
                           <div className='absolute inset-0 opacity-90 [background:radial-gradient(circle_at_22%_22%,rgba(96,165,250,0.40),transparent_18%),radial-gradient(circle_at_72%_30%,rgba(45,212,191,0.28),transparent_20%),radial-gradient(circle_at_50%_70%,rgba(168,85,247,0.36),transparent_26%)]' />
-                          <div className='absolute left-6 right-6 top-6 bottom-6 rounded-2xl border border-sky-400/25 bg-slate-950/30 backdrop-blur-sm' />
+                          <div className='absolute top-6 right-6 bottom-6 left-6 rounded-2xl border border-sky-400/25 bg-slate-950/30 backdrop-blur-sm' />
                         </div>
-                        <div className='mt-2 text-center text-[11px] uppercase tracking-[0.18em] text-slate-400'>
+                        <div className='mt-2 text-center text-[11px] tracking-[0.18em] text-slate-400 uppercase'>
                           原始影像 → 增强后影像
                         </div>
                       </div>
                     </div>
+                  </div>
+                  <div ref={assessmentRef}>
+                    <NodeAssessment
+                      key={selectedNode.id}
+                      nodeId={selectedNode.id}
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -503,7 +523,7 @@ export function NodeLearning() {
                     className='rounded-xl border-violet-500/30 bg-violet-500/8 text-violet-100 hover:bg-violet-500/15'
                     onClick={handleMarkCompleted}
                   >
-                    标记为已完成
+                    进入学习评价
                   </Button>
                   <Button
                     type='button'
@@ -524,7 +544,9 @@ export function NodeLearning() {
                     <Sparkles className='h-4 w-4' />
                   </div>
                   <div>
-                    <div className='text-sm font-semibold text-white'>AI 学习助手</div>
+                    <div className='text-sm font-semibold text-white'>
+                      AI 学习助手
+                    </div>
                     <div className='mt-0.5 flex items-center gap-1 text-[11px] text-emerald-300'>
                       <span className='h-2 w-2 rounded-full bg-emerald-400' />
                       在线
@@ -535,8 +557,37 @@ export function NodeLearning() {
 
               <div className='mt-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-2.5 text-xs leading-5 text-slate-300'>
                 <p>你好，我是小遇，你的遥感学习助手。</p>
-                <label className='mt-2 block'>讲解深度：<select aria-label='讲解深度' value={level} disabled={isAiReplying} onChange={e => setLevel(e.target.value as 'beginner' | 'advanced')} className='rounded bg-slate-800 p-1'><option value='beginner'>入门</option><option value='advanced'>进阶</option></select></label>
-                {conversationId && <Button size='sm' variant='outline' className='mt-2' disabled={isAiReplying} onClick={() => navigate({to:'/ai-assistant', search:{conversationId}})}>在完整助手中继续</Button>}
+                <label className='mt-2 block'>
+                  讲解深度：
+                  <select
+                    aria-label='讲解深度'
+                    value={level}
+                    disabled={isAiReplying}
+                    onChange={(e) =>
+                      setLevel(e.target.value as 'beginner' | 'advanced')
+                    }
+                    className='rounded bg-slate-800 p-1'
+                  >
+                    <option value='beginner'>入门</option>
+                    <option value='advanced'>进阶</option>
+                  </select>
+                </label>
+                {conversationId && (
+                  <Button
+                    size='sm'
+                    variant='outline'
+                    className='mt-2'
+                    disabled={isAiReplying}
+                    onClick={() =>
+                      navigate({
+                        to: '/ai-assistant',
+                        search: { conversationId },
+                      })
+                    }
+                  >
+                    在完整助手中继续
+                  </Button>
+                )}
                 <p className='mt-2'>如果你对当前知识点有疑问，可以直接问我。</p>
                 <p className='mt-2'>当前主题：{selectedNode.title}</p>
               </div>
@@ -555,9 +606,16 @@ export function NodeLearning() {
                 ))}
               </div>
 
-              <div className='mt-3 flex min-h-[320px] shrink-0 flex-1 flex-col rounded-2xl border border-slate-800 bg-slate-950/40 p-3'>
-                <p className='mb-2 shrink-0 text-xs font-medium text-violet-200'>小遇的回答</p>
-                <div ref={answerListRef} role='log' aria-label='小遇的回答' className='h-60 min-h-[220px] flex-1 space-y-3 overflow-y-auto pr-1'>
+              <div className='mt-3 flex min-h-[320px] flex-1 shrink-0 flex-col rounded-2xl border border-slate-800 bg-slate-950/40 p-3'>
+                <p className='mb-2 shrink-0 text-xs font-medium text-violet-200'>
+                  小遇的回答
+                </p>
+                <div
+                  ref={answerListRef}
+                  role='log'
+                  aria-label='小遇的回答'
+                  className='h-60 min-h-[220px] flex-1 space-y-3 overflow-y-auto pr-1'
+                >
                   {messages.map((message) => (
                     <div
                       key={message.id}

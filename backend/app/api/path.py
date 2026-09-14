@@ -1,113 +1,93 @@
-"""学习路径接口。"""
+"""目标、动态路径和冻结输入的版本回放。"""
 
-import json
-
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import PathPlan, PathStage, User
-from app.schemas.path import PathPlanOut
-from app.seed import data as seed_data
-from app.services import progress as progress_service
-from app.services.llm import llm_service
+from app.models import KnowledgeNode, User
+from app.models.adaptive import PathDecision
+from app.schemas.adaptive import GoalWrite
+from app.services.adaptive import goal_for, lock_learner, recompute
+from app.services.path_rules import RULE_VERSION, build_decision
 
 router = APIRouter()
 
-REGENERATE_PROMPT = (
-    "你是遥感专业的自适应学习路径规划助手。请根据学生的当前学习数据，"
-    "生成一段简短的学习路径分析。\n"
-    "只输出 JSON（不要代码块、不要多余文字），字段如下：\n"
-    # JSON 示例中的花括号需转义，否则 str.format 会把它们当成占位符（KeyError）
-    '{{"title": "...", "subtitle": "...", "badge": "...", "momentum": "...", "nextAction": "..."}}\n'
-    "- title：分析标题（8 字以内）\n"
-    "- subtitle：结合进度的具体建议（60 字以内）\n"
-    "- badge：2-4 字标签，例如“专属推荐”\n"
-    '- momentum：提升幅度描述，例如 "+8% 专项提升"\n'
-    "- nextAction：以“下一步：”开头的行动建议\n\n"
-    "学生当前数据：\n{summary}"
-)
 
-_ANALYSIS_KEYS = ("title", "subtitle", "badge", "momentum", "nextAction")
+@router.get("/plan")
+async def plan(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    await lock_learner(db, user.id)
+    result = await recompute(db, user.id, "读取时同步学习证据与图谱")
+    await db.commit()
+    return result
 
 
-def _parse_analysis(text: str) -> dict | None:
-    """从 LLM 输出中提取分析 JSON；解析失败时返回 None 走降级逻辑。"""
-    start = text.find("{")
-    end = text.rfind("}")
-    if start == -1 or end == -1:
-        return None
-    try:
-        data = json.loads(text[start : end + 1])
-    except json.JSONDecodeError:
-        return None
-    if not isinstance(data, dict) or not all(key in data for key in _ANALYSIS_KEYS):
-        return None
-    return {key: str(data[key]) for key in _ANALYSIS_KEYS}
+@router.put("/goal")
+async def update_goal(
+    payload: GoalWrite, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+):
+    await lock_learner(db, user.id)
+    ids = set(await db.scalars(select(KnowledgeNode.id)))
+    if any(key not in ids for key in payload.node_ids):
+        raise HTTPException(422, "目标包含不存在的知识节点")
+    goal = await goal_for(db, user.id)
+    requested = sorted(set(payload.node_ids))
+    if sorted(goal.node_ids) != requested or goal.daily_minutes != payload.daily_minutes:
+        goal.node_ids, goal.daily_minutes = requested, payload.daily_minutes
+        goal.version += 1
+    result = await recompute(db, user.id, "学习目标或可用时间调整")
+    await db.commit()
+    return result
 
 
-def _progress_summary(payload: dict) -> str:
-    lines = [f"- {card['label']}：{card['value']}" for card in payload["insight"]["cards"]]
-    for stage in payload["stages"]:
-        if stage["status"] == "active":
-            lines.append(f"- 当前阶段：{stage['title']}（完成度 {stage['completion']}%）")
-            break
-    return "\n".join(lines)
+@router.post("/regenerate")
+async def regenerate(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    await lock_learner(db, user.id)
+    result = await recompute(db, user.id, "学习者重新规划")
+    await db.commit()
+    return result
 
 
-async def ensure_plan(db: AsyncSession, user: User) -> PathPlan:
-    """读取当前用户的路径方案；不存在时用模板初始化（新注册用户）。"""
-    plan = (await db.execute(select(PathPlan).where(PathPlan.user_id == user.id))).scalar_one_or_none()
-    if plan is not None:
-        return plan
-    plan = PathPlan(
-        user_id=user.id,
-        version=1,
-        insight={},
-        analysis=dict(seed_data.PATH_ANALYSIS_VARIANTS[0]),
+@router.get("/history")
+async def history(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    rows = await db.scalars(
+        select(PathDecision)
+        .where(PathDecision.user_id == user.id)
+        .order_by(PathDecision.version.desc())
+        .limit(50)
     )
-    db.add(plan)
-    await db.flush()
-    for order, stage in enumerate(seed_data.PATH_STAGES):
-        db.add(PathStage(plan_id=plan.id, sort_order=order, **stage))
-    await db.commit()
-    return plan
+    return [
+        {
+            "version": row.version,
+            "createdAt": row.created_at.isoformat(),
+            "trigger": row.trigger,
+            "changes": row.changes,
+            "ruleVersion": row.rule_version,
+        }
+        for row in rows
+    ]
 
 
-@router.get("/plan", response_model=PathPlanOut)
-async def get_plan(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)) -> PathPlanOut:
-    await ensure_plan(db, user)
-    payload = await progress_service.build_path_plan_out(db, user.id)
-    return PathPlanOut(**payload)
-
-
-@router.post("/regenerate", response_model=PathPlanOut)
-async def regenerate(
-    user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
-) -> PathPlanOut:
-    """按最新学习进度重排阶段，并生成新的路径分析（配置 LLM 时由模型生成，否则轮换预置文案）。"""
-    plan = await ensure_plan(db, user)
-    plan.version += 1
-
-    payload = await progress_service.build_path_plan_out(db, user.id)
-    analysis: dict | None = None
-    if llm_service.enabled:
-        text = await llm_service.chat(
-            [
-                {
-                    "role": "user",
-                    "content": REGENERATE_PROMPT.format(summary=_progress_summary(payload)),
-                }
-            ]
-        )
-        analysis = _parse_analysis(text)
-    if analysis is None:
-        variants = seed_data.PATH_ANALYSIS_VARIANTS
-        analysis = dict(variants[(plan.version - 1) % len(variants)])
-
-    plan.analysis = analysis
-    await db.commit()
-    payload = await progress_service.build_path_plan_out(db, user.id)
-    return PathPlanOut(**payload)
+@router.get("/history/{version}")
+async def replay(version: int, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    row = await db.scalar(
+        select(PathDecision).where(PathDecision.user_id == user.id, PathDecision.version == version)
+    )
+    if row is None:
+        raise HTTPException(404, "路径版本不存在")
+    supported = row.rule_version == RULE_VERSION
+    recalculated = build_decision(row.inputs) if supported else None
+    return {
+        "version": row.version,
+        "createdAt": row.created_at.isoformat(),
+        "ruleVersion": row.rule_version,
+        "verified": recalculated == row.result if supported else None,
+        "result": row.result,
+        "goal": row.inputs["goal"],
+        "graphRevision": row.inputs["revision"],
+        "eventIds": row.inputs["eventIds"],
+        "evaluationIds": row.inputs["evaluationIds"],
+        "changes": row.changes,
+        "trigger": row.trigger,
+    }

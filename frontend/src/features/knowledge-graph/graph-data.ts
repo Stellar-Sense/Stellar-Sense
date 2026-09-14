@@ -21,6 +21,9 @@ export type KnowledgeNode = {
 }
 
 export type KnowledgeEdge = {
+  id?: number
+  relation?: 'prerequisite' | 'contains' | 'applies' | 'related'
+  reason?: string
   from: string
   to: string
 }

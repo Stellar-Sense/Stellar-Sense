@@ -6,7 +6,7 @@
 ## 本地运行
 
 按项目 README 安装依赖并配置 MySQL。在 `backend/.env` 设置数据库、JWT、`LLM_API_KEY`、`LLM_BASE_URL` 和 `LLM_MODEL`，可参考 `.env.example`。不要提交真实配置。
-在 backend 环境运行 `python run_local.py`，后端监听 8001；前端运行 `STELLAR_API_TARGET=http://127.0.0.1:8001 pnpm dev`。
+默认按 README 启动后端 8000 和前端即可。若使用备用端口，在 backend 环境运行 `python run_local.py`，后端监听 8001；在前端 PowerShell 终端设置 `$env:STELLAR_API_TARGET = 'http://127.0.0.1:8001'`，再运行 `pnpm.cmd dev`。
 默认模型为 DeepSeek。
 
 资料通过团队群文件分发，不随 Git 仓库提供。下载 `knowledge.json` 放到 `backend/data/knowledge.json`（没有 data 文件夹就创建）。`RAG_INDEX_PATH` 不设置或留空即可读取，不依赖启动目录；若已有旧的自定义路径，请清空并重启后端。自定义相对路径以 backend 为基准，也支持绝对路径。
@@ -35,4 +35,4 @@ metadata.context 内字段使用 snake_case；请求 context 支持 camelCase。
 后端：`python -m unittest discover -s tests -p test_xiaoyu.py`（9 项，使用临时测试资料验证默认路径、相对路径和文件缺失，不依赖群文件）。前端：`pnpm exec tsc -b`。
 已在本地验证 DeepSeek 的辐射校正回答、4 条摘要引用、跳转后历史和上下文保留；无资料讲解已通过单元测试，用户报告补充验证通过。
 
-本次不含新版学习区、文档/视频、小测、知识库管理、悬浮窗。驾驶舱/路径规划仍使用原实现；页面原有能力列表和静态建议不代表本次已实现。
+小遇模块负责讲解、资料引用和会话续接；当前项目已合入学习评价、自适应路径和管理员星图管理，详见 [学习路径与星图管理说明](adaptive-learning.md)。节点页的“进入学习评价”只定位到评价区，完成状态由评价证据决定，小遇回答不会直接修改掌握度。文档/视频学习区和悬浮窗仍不在本次接入范围内。
