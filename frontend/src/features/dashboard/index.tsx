@@ -134,7 +134,7 @@ export function Dashboard() {
                 </div>
               </CardHeader>
               <CardContent className='min-h-0 flex-1 px-4 pb-3.5'>
-                <LearningPath nodes={data.path} />
+                <LearningPath />
               </CardContent>
             </Card>
 

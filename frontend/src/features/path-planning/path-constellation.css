@@ -1,0 +1,88 @@
+.path-universe {
+  isolation: isolate;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 18% 22%, #17335455, transparent 48%),
+    radial-gradient(ellipse at 90% 75%, #3b246044, transparent 52%), #060c1b;
+}
+.path-universe::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  background-image:
+    radial-gradient(1px 1px at 19px 31px, #cbd5e1 90%, transparent),
+    radial-gradient(1px 1px at 71px 97px, #7dd3fc 90%, transparent);
+  background-size:
+    127px 113px,
+    173px 181px;
+}
+.path-planet {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  color: #bfdbfe;
+  filter: drop-shadow(0 5px 15px #020617);
+  transition:
+    transform 0.18s ease,
+    filter 0.18s ease;
+}
+.path-planet-surface {
+  position: absolute;
+  inset: 0;
+  border-radius: 44% 56% 52% 48% / 54% 43% 57% 46%;
+  box-shadow:
+    inset 3px 3px 8px #e0f2fe33,
+    inset -12px -10px 17px #02061799;
+  background:
+    radial-gradient(
+      circle at 30% 31%,
+      #cbd5e122 0 8%,
+      #02061733 9% 12%,
+      transparent 13%
+    ),
+    radial-gradient(circle at 70% 69%, #02061744 0 11%, transparent 13%),
+    linear-gradient(140deg, #526687, #253451 58%, #131e35);
+  border: 1px solid #94a3b866;
+}
+.path-planet-ready .path-planet-surface {
+  background-color: #55439c;
+  background-blend-mode: screen;
+  border-color: #a78bfa88;
+}
+.path-planet-current {
+  color: #f0f9ff;
+  filter: drop-shadow(0 0 15px #38bdf855);
+}
+.path-planet-current .path-planet-surface {
+  background-color: #117fba;
+  background-blend-mode: screen;
+  border-color: #7dd3fc;
+}
+.path-planet-orbit {
+  position: absolute;
+  inset: -7px;
+  border: 1px solid #7dd3fc55;
+  border-radius: 50%;
+  transform: rotate(-28deg) scaleY(0.5);
+}
+.path-stop:hover .path-planet,
+.path-stop:focus-visible .path-planet {
+  transform: translateY(-4px) scale(1.05);
+}
+.path-stop[aria-pressed='true'] .path-planet {
+  filter: drop-shadow(0 0 16px #7dd3fc88);
+}
+@media (prefers-reduced-motion: reduce) {
+  .path-planet {
+    transition: none;
+  }
+  .path-stop:hover .path-planet {
+    transform: none;
+  }
+}

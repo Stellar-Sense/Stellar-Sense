@@ -42,6 +42,7 @@ export function NavUser({ user }: NavUserProps) {
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton
                 size='lg'
+                aria-label={`${user.name} ${user.email}`.trim()}
                 className='data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'
               >
                 <UserAvatar user={user} />
