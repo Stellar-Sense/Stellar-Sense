@@ -17,6 +17,7 @@ import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
+import { useCompanionStore } from '@/stores/companion-store'
 import { useExplainNode, useLearningNode, useLearningNodes } from './api'
 import { NodeAssessment } from './assessment'
 import { LearningStageNav } from './components/learning-stage-nav'
@@ -75,6 +76,26 @@ export function NodeLearning() {
   }, [nodeStatuses, overview, requestedNodeId])
 
   const { data: selectedNode } = useLearningNode(effectiveNodeId)
+  const setCompanionNode = useCompanionStore((state) => state.setNode)
+  const openCompanion = useCompanionStore((state) => state.open)
+
+  useEffect(() => {
+    if (!selectedNode) return
+    setCompanionNode({
+      id: selectedNode.id,
+      name: selectedNode.title,
+      domain: selectedNode.breadcrumb.split(' / ')[0] ?? '遥感学习',
+      progress: selectedNode.progress,
+      description: selectedNode.summary,
+      status:
+        selectedNode.status === 'done'
+          ? 'mastered'
+          : selectedNode.status === 'current'
+            ? 'learning'
+            : 'unlearned',
+    })
+  }, [selectedNode, setCompanionNode])
+
   const sequence = overview?.sequence ?? []
   const groups = useMemo(() => overview?.groups ?? [], [overview])
   const currentProgress = useMemo(() => {
@@ -168,6 +189,7 @@ export function NodeLearning() {
       toast.info(t('请等待当前回复完成后再切换节点'))
       return
     }
+    openCompanion()
     resetNodeExperience()
     void navigate({
       to: '/node-learning',

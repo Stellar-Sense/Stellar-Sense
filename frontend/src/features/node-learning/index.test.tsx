@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { page, userEvent } from 'vitest/browser'
 import type { ChatStreamBody, ChatStreamHandlers } from '@/lib/chat-stream'
+import { useCompanionStore } from '@/stores/companion-store'
 import { NodeLearning } from './index'
 
 const mocks = vi.hoisted(() => ({
@@ -67,6 +68,7 @@ vi.mock('@/components/profile-dropdown', () => ({
 describe('node learning integration', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    useCompanionStore.setState({ isOpen: false, node: null })
     mocks.streamChat.mockImplementation(
       async (_body: ChatStreamBody, handlers: ChatStreamHandlers) => {
         handlers.onDelta('本次回答来自课程摘要。')
@@ -92,6 +94,7 @@ describe('node learning integration', () => {
   })
   afterEach(() => {
     vi.restoreAllMocks()
+    useCompanionStore.setState({ isOpen: false, node: null })
     document.documentElement.classList.remove('light', 'dark')
   })
 
@@ -152,6 +155,8 @@ describe('node learning integration', () => {
           <NodeLearning />
         </QueryClientProvider>
       )
+      expect(useCompanionStore.getState().node?.id).toBe('遥感概论')
+      expect(useCompanionStore.getState().isOpen).toBe(false)
       await userEvent.selectOptions(
         screen.getByRole('combobox', { name: '讲解深度' }),
         'advanced'
@@ -201,6 +206,7 @@ describe('node learning integration', () => {
         search: { conversationId: 'conversation-1' },
       })
       await userEvent.click(screen.getByRole('button', { name: '下一个节点' }))
+      expect(useCompanionStore.getState().isOpen).toBe(true)
       expect(mocks.navigate).toHaveBeenCalledWith({
         to: '/node-learning',
         search: { nodeId: '电磁波与遥感', stage: 'material' },
