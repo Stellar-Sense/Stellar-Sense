@@ -27,7 +27,15 @@ export function CompanionEvidence({
           <p>{ref.text}</p>
           <p className='text-slate-400'>
             {ref.sourceDocument}
-            {t('（知识星图摘要）')}
+            {ref.evidenceKind === 'summary'
+              ? t('（知识星图摘要）')
+              : t('（课程检索片段）')}
+          </p>
+          <p className='text-slate-500'>
+            {t('片段：')}
+            {ref.chunkId}
+            {ref.nodeId != null && ` · ${t('节点：')}${ref.nodeId}`}
+            {` · ${ref.evidenceKind}`}
           </p>
         </details>
       ))}

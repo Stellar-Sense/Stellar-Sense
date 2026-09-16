@@ -129,3 +129,5 @@ logs/
 docker-compose.override.yml
 # 课程资料通过团队群文件分发
 /backend/data/knowledge.json
+# 运行时生成的 BM25 索引；测试 fixtures 不受影响
+/backend/data/processed/rag_index.json

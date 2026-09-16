@@ -2,9 +2,21 @@ import { useAuthStore } from '@/stores/auth-store'
 
 export type CompanionMetadata = {
   mode: 'generated' | 'model_only' | 'fallback'
+  retrievalMode?: 'bm25' | 'summary_fallback' | 'none'
+  retrievalReason?: 'index_not_found' | 'index_invalid' | 'retrieval_error' | null
+  retrievalScope?: 'direct' | 'alias' | 'all_course'
   reason?: string
   suggestedAction?: string
-  references: { chunkId: string; text: string; sourceDocument: string; locator: string; evidenceKind: string }[]
+  references: {
+    chunkId: string
+    text: string
+    sourceDocument: string
+    locator: string
+    evidenceKind: string
+    originalResourceHint?: string
+    nodeId?: string | number | null
+    score?: number
+  }[]
   context?: { node?: string; node_id?: string; learner_level?: 'beginner' | 'advanced'; scene?: 'preview' | 'exam_review'; stage?: string; progress?: string }
 }
 
