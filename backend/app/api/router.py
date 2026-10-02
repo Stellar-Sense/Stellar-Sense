@@ -12,6 +12,7 @@ from app.api import (
     learning,
     learning_events,
     path,
+    rag,
     user,
 )
 
@@ -26,3 +27,4 @@ api_router.include_router(learning_events.router, prefix="/learning", tags=["lea
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 api_router.include_router(user.router, prefix="/user", tags=["user"])
 api_router.include_router(ai.router, prefix="/ai", tags=["ai"])
+api_router.include_router(rag.router, prefix="/rag", tags=["rag"])

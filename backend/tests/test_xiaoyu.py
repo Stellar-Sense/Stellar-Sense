@@ -9,12 +9,12 @@ from app.services.xiaoyu import CompanionService, SummaryRetriever
 
 
 class Retriever:
-    def retrieve(self, question, node_id):
+    def retrieve(self, question, node_id, limit=4):
         return [{"chunkId": "KP_test", "text": "测试摘要", "evidenceKind": "summary"}]
 
 
 class EmptyRetriever:
-    def retrieve(self, question, node_id):
+    def retrieve(self, question, node_id, limit=4):
         return []
 
 
@@ -85,6 +85,7 @@ class CompanionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["metadata"]["context"]["node"], "辐射校正")
         self.assertEqual(result["metadata"]["references"][0]["chunkId"], "KP_test")
         self.assertEqual(result["metadata"]["mode"], "generated")
+        self.assertEqual(result["metadata"]["retrievalMode"], "summary_fallback")
 
     async def test_unknown_citation_rejected(self):
         with patch("app.services.xiaoyu.settings", SimpleNamespace(llm_enabled=True)):

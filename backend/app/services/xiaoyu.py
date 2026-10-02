@@ -1,14 +1,22 @@
 """确定性伴学工作流：映射/检索 → 分层提示 → 模型 → 校验引用。"""
 
 import json
+import logging
 import re
 from pathlib import Path
+from typing import Any, Literal
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.config import BASE_DIR, settings
+from app.rag.container import retrieval_service
+from app.rag.index import IndexFormatError
+from app.rag.scope import NodeRetrievalScope
+from app.rag.service import RetrievalService
 from app.services.xiaoyu_policy import explanation_policy
+
+logger = logging.getLogger("stellar.rag")
 
 # 现有网页节点较粗，映射到星图小节；未映射时提供明确标注的模型讲解。
 NODE_SECTIONS = {
@@ -60,6 +68,92 @@ class SummaryRetriever:
         ]
 
 
+RetrievalMode = Literal["bm25", "summary_fallback", "none"]
+RetrievalReason = Literal["index_not_found", "index_invalid", "retrieval_error"]
+
+
+class RetrievedMaterials(list[dict[str, Any]]):
+    """保持既有 list 接口，同时携带本次检索链路元数据。"""
+
+    def __init__(
+        self,
+        materials: list[dict[str, Any]],
+        *,
+        retrieval_mode: RetrievalMode,
+        scope_mapping: str,
+        retrieval_reason: RetrievalReason | None = None,
+    ) -> None:
+        super().__init__(materials)
+        self.retrieval_mode = retrieval_mode
+        self.scope_mapping = scope_mapping
+        self.retrieval_reason = retrieval_reason
+
+
+class RagCompanionRetriever:
+    """将 Retrieval V0.1 Hit 适配为小遇 Evidence，并安全回退旧摘要。"""
+
+    def __init__(
+        self,
+        service: RetrievalService | None = None,
+        fallback: SummaryRetriever | None = None,
+    ) -> None:
+        self.service = service or retrieval_service
+        self.fallback = fallback or SummaryRetriever()
+
+    def retrieve(self, question, node_id=None, limit=4):
+        scope = NodeRetrievalScope.resolve(node_id)
+        try:
+            hits = self.service.retrieve(
+                question,
+                top_k=limit,
+                node_id=scope.index_node_id,
+            )
+        except FileNotFoundError:
+            logger.info("BM25 index not found; using summary fallback")
+            return self._summary_fallback(question, node_id, limit, scope.mapping, "index_not_found")
+        except IndexFormatError:
+            logger.warning("BM25 index is invalid; using summary fallback", exc_info=True)
+            return self._summary_fallback(question, node_id, limit, scope.mapping, "index_invalid")
+        except Exception:
+            logger.exception("BM25 retrieval failed; using summary fallback")
+            return self._summary_fallback(question, node_id, limit, scope.mapping, "retrieval_error")
+
+        materials = [
+            {
+                "chunkId": hit.chunk_id,
+                "text": hit.content,
+                "sourceDocument": hit.resource_name,
+                "locator": hit.section,
+                "evidenceKind": "retrieved_chunk",
+                "originalResourceHint": hit.resource_name,
+                "score": hit.score,
+                "nodeId": hit.node_id,
+            }
+            for hit in hits
+        ]
+        return RetrievedMaterials(
+            materials,
+            retrieval_mode="bm25" if materials else "none",
+            scope_mapping=scope.mapping,
+        )
+
+    def _summary_fallback(
+        self,
+        question: str,
+        node_id: str | int | None,
+        limit: int,
+        scope_mapping: str,
+        retrieval_reason: RetrievalReason,
+    ) -> RetrievedMaterials:
+        legacy = self.fallback.retrieve(question, node_id, limit=limit)
+        return RetrievedMaterials(
+            legacy,
+            retrieval_mode="summary_fallback" if legacy else "none",
+            scope_mapping=scope_mapping,
+            retrieval_reason=retrieval_reason,
+        )
+
+
 class ModelGenerator:
     async def generate(self, messages):
         payload = {
@@ -86,7 +180,7 @@ class ModelGenerator:
 
 class CompanionService:
     def __init__(self, retriever=None, generator=None):
-        self.retriever = retriever or SummaryRetriever()
+        self.retriever = retriever or RagCompanionRetriever()
         self.generator = generator or ModelGenerator()
 
     async def reply(self, question, node, context, history):
@@ -94,13 +188,20 @@ class CompanionService:
         if node is not None:
             context.update(node_id=node.id, node=node.title)
 
-        def fallback(reason, chunks=None):
+        retrieval_mode: RetrievalMode = "none"
+        retrieval_reason: RetrievalReason | None = None
+        scope_mapping = NodeRetrievalScope.resolve(node.id if node else None).mapping
+
+        def fallback(reason):
             return {
                 "answer": "当前展示固定学习摘要，尚未生成针对本次问题的回答。\n"
                 + (node.summary if node is not None else "请从节点学习页选择知识点，或明确提出问题。"),
                 "metadata": {
                     "mode": "fallback",
                     "reason": reason,
+                    "retrievalMode": retrieval_mode,
+                    "retrievalReason": retrieval_reason,
+                    "retrievalScope": scope_mapping,
                     "references": [],
                     "suggestedAction": "可先阅读当前学习内容，待资料或模型就绪后再提问。",
                     "context": context,
@@ -108,8 +209,18 @@ class CompanionService:
             }
 
         try:
-            chunks = self.retriever.retrieve(question, node.id if node else "")
+            retrieved = self.retriever.retrieve(question, node.id if node else None)
+            chunks = list(retrieved)
+            retrieval_mode = getattr(
+                retrieved,
+                "retrieval_mode",
+                "summary_fallback" if chunks else "none",
+            )
+            retrieval_reason = getattr(retrieved, "retrieval_reason", None)
+            scope_mapping = getattr(retrieved, "scope_mapping", scope_mapping)
         except Exception:
+            logger.exception("Companion retrieval failed; using safe fallback")
+            retrieval_reason = "retrieval_error"
             return fallback("资料检索暂不可用")
         if not settings.llm_enabled:
             return fallback("模型密钥尚未配置")
@@ -118,14 +229,17 @@ class CompanionService:
             if context.get("scene", "preview") == "preview"
             else "考前复习：考点和易混点优先，不预测考试题。"
         )
-        evidence_policy = (
-            "专业事实只依照本次资料；不足则明确说不足。资料为知识星图摘要，原PDF线索不代表已读原文。"
-            if chunks
-            else (
+        if retrieval_mode == "bm25":
+            evidence_policy = "专业事实优先依照本次检索到的课程原文片段；不足则明确说不足。"
+        elif retrieval_mode == "summary_fallback":
+            evidence_policy = (
+                "专业事实只依照本次资料；不足则明确说不足。资料为知识星图摘要，原PDF线索不代表已读原文。"
+            )
+        else:
+            evidence_policy = (
                 "本次未检索到课程资料。请基于通用知识提供谨慎的基础讲解，明确不确定之处，"
                 "不声称来自课程资料，不编造出处，cited_chunk_ids必须为空数组。"
             )
-        )
         messages = [
             {
                 "role": "system",
@@ -138,8 +252,7 @@ class CompanionService:
                 + explanation_policy(context.get("learner_level", "beginner"))
                 + "根据context中的learner_profile选择贴近背景与兴趣的例子、讲解步骤及练习形式。"
                 "基础标签仅为自评，不代表已掌握；当前问题和明确指定的讲解深度优先。"
-                "未知或缺少的画像项不要猜测，不要把标签当作专业事实或课程资料。"
-                + scene,
+                "未知或缺少的画像项不要猜测，不要把标签当作专业事实或课程资料。" + scene,
             },
             {
                 "role": "user",
@@ -166,6 +279,9 @@ class CompanionService:
             "metadata": {
                 "mode": "generated" if chunks else "model_only",
                 "reason": None if chunks else "未检索到课程资料",
+                "retrievalMode": retrieval_mode,
+                "retrievalReason": retrieval_reason,
+                "retrievalScope": scope_mapping,
                 "references": [allowed[cid] for cid in dict.fromkeys(answer.cited_chunk_ids)],
                 "suggestedAction": answer.suggested_action,
                 "context": context,

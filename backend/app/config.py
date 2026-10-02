@@ -32,7 +32,10 @@ class Settings(BaseSettings):
     llm_base_url: str = "https://api.deepseek.com"
     llm_api_key: str = ""
     llm_model: str = "deepseek-v4-flash"
+    # Legacy 知识星图摘要（knowledge.json）；保留既有环境变量语义。
     rag_index_path: str = ""
+    # Retrieval V0.1 BM25 索引；与 legacy knowledge.json 使用不同 Schema。
+    rag_retrieval_index_path: str = "data/processed/rag_index.json"
     llm_timeout_seconds: float = 60.0
 
     # CORS（开发环境前端地址）
